@@ -1,0 +1,181 @@
+<div class="users-root">
+  <!-- Header Toolbar -->
+  <div class="toolbar">
+    <div class="left">
+      <div class="search">
+        <input
+          class="input-search"
+          type="text"
+          placeholder="Search by name, email, or role"
+          [(ngModel)]="searchTerm"
+          (input)="setPage(1)"
+        />
+
+        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">
+          <svg viewBox="0 0 24 24" class="icon-clear">
+            <path
+              d="M18 6L6 18M6 6l12 12"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="right">
+      <label>
+        Show
+        <select class="select-size" [(ngModel)]="pageSize" (change)="setPage(1)">
+          <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+        </select>
+        entries
+      </label>
+      <!-- <button class="btn btn-secondary" (click)="loadUsers()" [disabled]="loading">
+        {{ loading ? 'Loading...' : 'Refresh' }}
+      </button> -->
+    </div>
+  </div>
+
+  <!-- Table -->
+  <table class="users-table" *ngIf="!loading; else loadingTpl">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Roles</th>
+        <th>Email Verified</th>
+        <th>Phone Verified</th>
+        <th>Subscription</th>
+        <th> Type</th>
+            <th> Status</th>
+        <th>Days</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let u of pagedUsers; let i = index">
+        <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+        <td>{{ u.name }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.phone || '-' }}</td>
+        <td>
+          <span class="role-badge" *ngFor="let r of u.roles">{{ r }}</span>
+        </td>
+        <td>
+          <span [class.yes]="u.isEmailVerified" [class.no]="!u.isEmailVerified">
+            {{ u.isEmailVerified ? 'Yes' : 'No' }}
+          </span>
+        </td>
+        <td>
+          <span [class.yes]="u.isPhoneVerified" [class.no]="!u.isPhoneVerified">
+            {{ u.isPhoneVerified ? 'Yes' : 'No' }}
+          </span>
+        </td>
+        <!-- ✅ Subscription Column Improved -->
+        <td>
+          <div class="subscription-cell">
+            <!-- <span class="status" [attr.data-status]="u.subscriptionStatus">
+              {{ u.subscriptionStatus || 'N/A' }}
+            </span> -->
+            <div class="subscription-dates" *ngIf="u.subscriptionStatus && u.subscriptionStatus !== 'N/A'">
+              {{ u.startDate }} → {{ u.endDate }}
+            </div>
+          </div>
+        </td>
+
+
+   <!-- Subscription Type Column -->
+<td>
+  <span class="badge type" [ngClass]="{
+        'quarterly': u.subscriptionType === 'Quarterly',
+        'monthly': u.subscriptionType === 'Monthly',
+        'yearly': u.subscriptionType === 'Yearly',
+        'other': u.subscriptionType !== 'Quarterly' && u.subscriptionType !== 'Monthly' && u.subscriptionType !== 'Yearly'
+      }">
+    {{ u.subscriptionType || 'N/A' }}
+  </span>
+</td>
+
+<!-- Subscription Status Column -->
+<td>
+  <span class="badge status" [ngClass]="{
+        'active': u.subscriptionStatus === 'Active',
+        'inactive': u.subscriptionStatus === 'Inactive',
+        'expired': u.subscriptionStatus === 'Expired'
+      }">
+    {{ u.subscriptionStatus || 'N/A' }}
+  </span>
+</td>
+
+<td>
+  {{ getRemainingDays(u.startDate, u.endDate) }} days
+</td>
+
+        <!-- ✅ ACTION BUTTONS -->
+        <td class="actions">
+          <!-- Verify Email -->
+          <button
+            mat-icon-button
+            matTooltip="Verify Email"
+          
+            color="primary"
+            (click)="verifyEmail(u.id)"
+            class="action-btn email-btn"
+          >
+            <mat-icon fontIcon="mark_email_read"></mat-icon>
+          </button>
+
+          <!-- Verify Phone -->
+          <button
+            mat-icon-button
+            class="action-btn phone-btn"
+            (click)="verifyPhone(u.id)"
+            matTooltip="Verify Phone Number"
+      
+            aria-label="Verify Phone"
+          >
+            <mat-icon fontIcon="phone_iphone"></mat-icon>
+          </button>
+
+          <!-- Verify All -->
+          <button
+            mat-icon-button
+            matTooltip="Verify All"
+       
+            color="warn"
+            (click)="verifyAll(u.id)"
+            class="action-btn all-btn"
+          >
+            <mat-icon fontIcon="done_all"></mat-icon>
+          </button>
+        </td>
+      </tr>
+
+      <tr *ngIf="pagedUsers.length === 0">
+        <td colspan="10" class="no-results">No users found</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #loadingTpl>
+    <div class="loading">Loading users...</div>
+  </ng-template>
+
+  <!-- Pagination -->
+  <div class="pager" *ngIf="totalPages > 1">
+    <button (click)="prev()" [disabled]="currentPage === 1">Prev</button>
+    <ng-container *ngFor="let p of pages">
+      <button [class.active]="p === currentPage" (click)="setPage(p)">
+        {{ p }}
+      </button>
+    </ng-container>
+    <button (click)="next()" [disabled]="currentPage === totalPages">Next</button>
+  </div>
+</div>

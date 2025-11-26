@@ -1,0 +1,97 @@
+<div class="login-hero">
+  <div class="hero-bg"></div>
+
+  <div class="center-wrap">
+    <!-- ---------- Brand Section ---------- -->
+    <div class="brand-logo-wrap">
+      <img
+        src="../assets/ic_launcher-web.png"
+        alt="Reader's Paradise Logo"
+        class="brand-logo"
+      />
+      <div class="brand-text">
+        <h2 class="brand-title">Reader's Paradise</h2>
+        <p class="brand-sub">Manage your library efficiently</p>
+      </div>
+    </div>
+
+    <!-- ---------- Card Section ---------- -->
+    <div class="card">
+      <h3 class="card-title">Login</h3>
+      <p class="card-sub">Access your admin dashboard</p>
+
+      <!-- Error alert -->
+      <div *ngIf="error" class="alert error">
+        <mat-icon>error_outline</mat-icon>
+        {{ error }}
+      </div>
+
+      <!-- ---------- Form ---------- -->
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <!-- Email -->
+        <div class="field">
+          <label class="label-text">Email</label>
+          <input
+            type="email"
+            formControlName="email"
+            placeholder="Enter your email"
+            [class.invalid]="form.get('email')?.invalid && form.get('email')?.touched"
+          />
+          <div
+            class="error-text"
+            *ngIf="form.get('email')?.hasError('required') && form.get('email')?.touched"
+          >
+            Email is required.
+          </div>
+          <div
+            class="error-text"
+            *ngIf="form.get('email')?.hasError('email') && form.get('email')?.touched"
+          >
+            Please enter a valid email.
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label class="label-text">Password</label>
+          <div class="password-wrapper">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Enter your password"
+              [class.invalid]="form.get('password')?.invalid && form.get('password')?.touched"
+            />
+            <button type="button" class="toggle-password" (click)="togglePassword()">
+              <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+          <div
+            class="error-text"
+            *ngIf="form.get('password')?.hasError('required') && form.get('password')?.touched"
+          >
+            Password is required.
+          </div>
+        </div>
+
+        <!-- Remember + Forgot -->
+        <div class="card-row">
+          <label class="remember">
+            <input type="checkbox" formControlName="remember" />
+            Remember me
+          </label>
+          <!-- <a class="forgot" routerLink="/forgot-password">Forgot password?</a> -->
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="primary"
+          [disabled]="loading"
+        >
+ 
+          {{ loading ? 'Login' : 'Login' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

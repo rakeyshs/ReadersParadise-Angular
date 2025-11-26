@@ -1,0 +1,232 @@
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import Swal from 'sweetalert2';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+
+// ---------------- INTERFACES ----------------
+interface ApiSubscription {
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+interface ApiUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string | null;
+  roles?: string[];
+  subscription?: ApiSubscription | null;
+  isEmailVerified?: boolean;
+  isPhoneVerified?: boolean;
+  subscriptionType?: string;
+  createdAt: string;
+}
+
+
+
+interface ApiSubscription {
+  type?: string;        // ← THIS IS REQUIRED
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  roles: string[];
+  subscriptionStatus: string;
+  startDate: string;
+  endDate: string;
+  subscriptionType: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  createdAt: string;
+}
+
+@Component({
+  selector: 'app-admin-orders',
+  standalone: true,
+ imports: [MatButtonModule, MatIconModule, CommonModule, FormsModule, HttpClientModule,MatTooltipModule ],
+  templateUrl: './admin-orders.html',
+  styleUrls: ['./admin-orders.scss'],
+})
+export class AdminOrders implements OnInit {
+  private readonly API_URL = 'https://primabi.co/api/v1/admin/AdminUsers?page=1&pageSize=20&sortBy=createdAt&sortOrder=desc';
+
+  users: User[] = [];
+  searchTerm = '';
+  pageSizes = [5, 10, 20];
+  pageSize = 10;
+  currentPage = 1;
+  loading = false;
+   
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  parseDate(dateStr: string): Date {
+  const [day, month, year] = dateStr.split('/').map(Number);
+  return new Date(year, month - 1, day);
+}
+getRemainingDays(startDate: string, endDate: string): number {
+  if (!startDate || !endDate) return 0;
+
+  const today = new Date();
+  const end = this.parseDate(endDate);
+
+  // Difference in milliseconds
+  const diffTime = end.getTime() - today.getTime();
+
+  // Convert milliseconds → days
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays > 0 ? diffDays : 0;
+}
+
+  /** Load users from API */
+  loadUsers(): void {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      Swal.fire('Error', 'No authentication token found', 'error');
+      return;
+    }
+
+    this.loading = true;
+
+    this.http.get<{ data: { users: ApiUser[] } }>(this.API_URL, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: (res) => {
+        this.loading = false;
+        if (res?.data?.users) {
+          this.users = res.data.users.map(u => this.mapApiToUser(u));
+          this.setPage(1);
+          this.cdr.markForCheck();
+        } else {
+          Swal.fire('Error', 'Unexpected API response format', 'error');
+        }
+      },
+      error: (err) => {
+        this.loading = false;
+        console.error('❌ Error loading users:', err);
+        Swal.fire(
+          'Error',
+          err?.status === 401 ? 'Session expired or unauthorized access' : 'Failed to fetch users',
+          'error'
+        );
+      }
+    });
+  }
+
+
+
+  /** Map API response to UI model */
+  private mapApiToUser(u: ApiUser): User {
+    const sub = u.subscription;
+    return {
+      id: u.id,
+      name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+      email: u.email,
+      phone: u.phoneNumber || '',
+      roles: u.roles || [],
+      subscriptionStatus: sub?.status ?? 'N/A',
+      startDate: sub?.startDate ? new Date(sub.startDate).toLocaleDateString() : '',
+      endDate: sub?.endDate ? new Date(sub.endDate).toLocaleDateString() : '',
+      subscriptionType: sub?.type ?? 'N/A',
+      isEmailVerified: u.isEmailVerified ?? false,
+      isPhoneVerified: u.isPhoneVerified ?? false,
+      createdAt: new Date(u.createdAt).toLocaleDateString(),
+    };
+  }
+
+  /** Filtering logic */
+  get filteredUsers(): User[] {
+    const q = this.searchTerm.toLowerCase();
+    return this.users.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.roles.join(',').toLowerCase().includes(q)
+    );
+  }
+
+  /** Pagination logic */
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredUsers.length / this.pageSize));
+  }
+
+  get pages(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  get pagedUsers(): User[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredUsers.slice(start, start + this.pageSize);
+  }
+
+  setPage(n: number): void {
+    this.currentPage = Math.min(Math.max(n, 1), this.totalPages);
+  }
+
+  prev(): void { this.setPage(this.currentPage - 1); }
+  next(): void { this.setPage(this.currentPage + 1); }
+  clearSearch(): void { this.searchTerm = ''; this.setPage(1); }
+
+  /** ---------------- ACTION BUTTONS ---------------- */
+
+verifyEmail(userId: string) {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  this.http.post(`https://primabi.co/api/v1/admin/AdminUsers/${userId}/verify-email`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).subscribe({
+    next: () => {
+      Swal.fire('✅ Success', 'Email verified successfully', 'success');
+      this.loadUsers(); // 🔁 auto refresh table
+    },
+    error: () => Swal.fire('❌ Error', 'Failed to verify email', 'error')
+  });
+}
+
+verifyPhone(userId: string) {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  this.http.post(`https://primabi.co/api/v1/admin/AdminUsers/${userId}/verify-phone`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).subscribe({
+    next: () => {
+      Swal.fire('✅ Success', 'Phone verified successfully', 'success');
+      this.loadUsers(); // 🔁 auto refresh table
+    },
+    error: () => Swal.fire('❌ Error', 'Failed to verify phone', 'error')
+  });
+}
+
+verifyAll(userId: string) {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  this.http.post(`https://primabi.co/api/v1/admin/AdminUsers/${userId}/verify-all`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).subscribe({
+    next: () => {
+      Swal.fire('✅ Success', 'Email & Phone verified successfully', 'success');
+      this.loadUsers(); // 🔁 auto refresh table
+    },
+    error: () => Swal.fire('❌ Error', 'Failed to verify both', 'error')
+  });
+}
+
+}

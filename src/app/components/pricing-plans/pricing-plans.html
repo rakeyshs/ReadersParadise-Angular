@@ -1,0 +1,190 @@
+<div class="header-section">
+  <button class="edit-btn" (click)="addPlan()">+ Add New Plan</button>
+</div>
+
+<!-- =================== Main Container =================== -->
+<div class="plans-container">
+
+  <div 
+    class="plan-card"
+    *ngFor="let p of plans"
+    [ngClass]="{'inactive': !p.isActive}"
+  >
+
+    <div class="top-right-controls">
+      <button 
+        class="edit-btn"
+        [ngClass]="{ 'disabled': !p.isActive }"
+        [disabled]="!p.isActive"
+        (click)="editPlan(p, $event)"
+      >
+        Edit
+      </button>
+
+      <button 
+        class="plan-status"
+        [ngClass]="p.isActive ? 'active-badge' : 'inactive-badge'"
+        (click)="toggleStatus(p, $event)"
+      >
+        {{ p.isActive ? 'Active' : 'Inactive' }}
+      </button> 
+       <!-- <button 
+        class="delete-btn"
+        (click)="deletePlan(p, $event)"
+      >
+        Delete
+      </button>  -->
+
+
+      
+    </div>
+
+    <div class="plan-header">
+      <h3>{{ p.name }}</h3>
+      <p class="price">AED {{ p.price }}/month</p>
+    </div>
+
+    <p class="duration">Duration: {{ p.durationMonths }} months</p>
+
+    <p class="deposit">Refundable Deposit: AED {{ p.refundableDeposit }}</p>
+
+    <p class="description">{{ p.description }}</p>
+
+    <ul class="features">
+      <li *ngFor="let f of p.features">
+        <span class="check">✔</span> {{ f }}
+      </li>
+    </ul>
+
+    <div class="stats">
+      <p>Subscribers: {{ p.subscribers }}</p>
+      <p>Revenue: AED {{ p.revenue }}</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- =================== Modal =================== -->
+<div class="modal fade show" *ngIf="showModal" style="display: block; background: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <!-- Header -->
+      <div class="gradient-header d-flex justify-content-between align-items-center">
+        <h5 class="modal-title">{{ isEdit ? 'Edit Plan' : 'Add New Plan' }}</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <form [formGroup]="planForm">
+
+          <div class="form-grid">
+
+            <!-- NAME -->
+            <div class="form-group">
+              <label>Plan Name *</label>
+              <input type="text" formControlName="name" class="form-control">
+              <div class="text-danger" *ngIf="isInvalid('name')">
+                <small *ngIf="planForm.get('name')?.errors?.['required']">Name is required.</small>
+                <small *ngIf="planForm.get('name')?.errors?.['minlength']">Minimum 3 characters.</small>
+                <small *ngIf="planForm.get('name')?.errors?.['pattern']">Only letters & numbers allowed.</small>
+              </div>
+            </div>
+
+            <!-- TYPE -->
+            <div class="form-group">
+              <label>Plan Type *</label>
+              <input type="text" formControlName="type" class="form-control">
+              <div class="text-danger" *ngIf="isInvalid('type')">
+                <small *ngIf="planForm.get('type')?.errors?.['required']">Type is required.</small>
+                <small *ngIf="planForm.get('type')?.errors?.['pattern']">Only alphabets allowed.</small>
+              </div>
+            </div>
+
+            <!-- PRICE -->
+            <div class="form-group">
+              <label>Price *</label>
+              <input type="number" formControlName="price" class="form-control">
+              <div class="text-danger" *ngIf="isInvalid('price')">
+                <small *ngIf="planForm.get('price')?.errors?.['required']">Price is required.</small>
+                <small *ngIf="planForm.get('price')?.errors?.['min']">Must be greater than 0.</small>
+              </div>
+            </div>
+
+            <!-- DURATION -->
+            <div class="form-group">
+              <label>Duration (Months) *</label>
+              <input type="number" formControlName="durationMonths" class="form-control">
+              <div class="text-danger" *ngIf="isInvalid('durationMonths')">
+                <small *ngIf="planForm.get('durationMonths')?.errors?.['required']">Duration required.</small>
+                <small *ngIf="planForm.get('durationMonths')?.errors?.['min']">Minimum 1 month.</small>
+                <small *ngIf="planForm.get('durationMonths')?.errors?.['max']">Maximum 36 months allowed.</small>
+              </div>
+            </div>
+
+            <!-- DEPOSIT -->
+            <div class="form-group">
+              <label>Refundable Deposit *</label>
+              <input type="number" formControlName="refundableDeposit" class="form-control">
+              <div class="text-danger" *ngIf="isInvalid('refundableDeposit')">
+                <small *ngIf="planForm.get('refundableDeposit')?.errors?.['required']">Deposit required.</small>
+                <small *ngIf="planForm.get('refundableDeposit')?.errors?.['min']">Cannot be negative.</small>
+              </div>
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="form-group full-width">
+              <label>Description *</label>
+              <textarea rows="2" formControlName="description" class="form-control"></textarea>
+              <div class="text-danger" *ngIf="isInvalid('description')">
+                <small *ngIf="planForm.get('description')?.errors?.['required']">Description required.</small>
+                <small *ngIf="planForm.get('description')?.errors?.['minlength']">
+                  Minimum 10 characters.
+                </small>
+              </div>
+            </div>
+
+            <!-- FEATURES -->
+            <div class="form-group full-width">
+              <label>Features (each on new line) *</label>
+              <textarea rows="3" formControlName="features" class="form-control"></textarea>
+              <div class="text-danger" *ngIf="isInvalid('features')">
+                <small *ngIf="planForm.get('features')?.errors?.['required']">Features required.</small>
+                <small *ngIf="planForm.get('features')?.errors?.['minlength']">Minimum 5 characters.</small>
+              </div>
+            </div>
+
+            <!-- BENEFITS -->
+            <div class="form-group full-width">
+              <label>Benefits *</label>
+              <textarea rows="3" formControlName="benefits" class="form-control"></textarea>
+              <div class="text-danger" *ngIf="isInvalid('benefits')">
+                <small *ngIf="planForm.get('benefits')?.errors?.['required']">Benefits required.</small>
+                <small *ngIf="planForm.get('benefits')?.errors?.['minlength']">Minimum 5 characters.</small>
+              </div>
+            </div>
+
+            <!-- STATUS -->
+            <div class="form-group">
+              <label>Status</label>
+              <select formControlName="isActive" class="form-control">
+                <option [value]="true">Active</option>
+                <option [value]="false">Inactive</option>
+              </select>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-danger" (click)="closeModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="savePlan()">
+          {{ isEdit ? 'Update Plan' : 'Save Plan' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

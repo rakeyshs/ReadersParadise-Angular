@@ -1,0 +1,427 @@
+<div class="users-root">
+
+  <!-- ---------------- Toolbar ---------------- -->
+  <div class="toolbar">
+    <div class="left" style="display:flex; align-items:center; gap:12px;">
+      <div class="search">
+        <input
+          class="input-search"
+          type="text"
+          placeholder="Search by book title..."
+          [(ngModel)]="searchTerm"
+          (keyup.enter)="applyFilter()"
+        />
+        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">×</button>
+      </div>
+
+      <!-- Most Rented / Clear Most Rented -->
+      <button class="btn btn-info" (click)="loadMostRented()" *ngIf="!showMostRented">Most Rented</button>
+      <span *ngIf="showMostRented" style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-info" (click)="refresh()">Refresh Most Rented</button>
+        <button class="btn" (click)="clearMostRentedFilter()">Clear</button>
+      </span>
+    </div>
+
+    <div class="right" style="display:flex; align-items:center; gap:10px;">
+      <label style="display:flex; align-items:center; gap:8px;">
+        Show
+        <select class="select-size" [(ngModel)]="pageSize" (change)="currentPage = 1; loadInventory()">
+          <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+        </select>
+        entries
+      </label>
+
+      <button class="btn btn-primary" (click)="openAddBookModal()">＋ Add Book</button>
+      <button class="btn btn-success" (click)="exportBooks()">Export Books</button>
+
+      <label class="btn btn-warning" style="cursor:pointer;">
+        Import Books
+        <input type="file" hidden (change)="onFileSelected($event)" accept=".csv" />
+      </label>
+    </div>
+  </div>
+
+  <!-- ---------------- Table ---------------- -->
+  <table class="users-table" *ngIf="!loading; else loadingTpl">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cover</th>
+        <th>Book Title</th>
+        <th>Total Copies</th>
+        <th>Available</th>
+        <th>Rented</th>
+        <th>Min Stock</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let b of books; let i = index">
+        <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+
+        <td>
+          <img
+            [src]="b.imageUrl || 'https://via.placeholder.com/50x70?text=No+Image'"
+            alt="{{ b.title }}"
+            width="30"
+            height="40"
+            class="book-cover"
+          />
+        </td>
+
+        <td>{{ b.title }}</td>
+        <td>{{ b.totalCopies }}</td>
+        <td [class.low-stock]="b.availableCopies <= b.minStock">{{ b.availableCopies }}</td>
+        <td>{{ b.rentedCopies }}</td>
+        <td>{{ b.minStock }}</td>
+
+        <td class="actions">
+          <!-- Edit -->
+          <button
+            mat-icon-button
+            matTooltip="Edit Book"
+            (click)="editBook(b, $event)"
+            class="action-btn edit-btn"
+          >
+            <mat-icon fontIcon="edit"></mat-icon>
+          </button>
+
+          <!-- View Rental History -->
+          <button
+            mat-icon-button
+            matTooltip="View Rental History"
+            (click)="viewRentalHistory(b, $event)"
+            class="action-btn history-btn"
+          >
+           <mat-icon>visibility</mat-icon>
+          </button>
+
+          <!-- Archive/Unarchive -->
+          <button
+            *ngIf="!b.archived"
+            mat-icon-button
+            matTooltip="Archive Book"
+            (click)="toggleArchive(b)"
+            class="action-btn archive-btn"
+          >
+           <mat-icon>archive</mat-icon>
+          </button>
+
+          <button
+            *ngIf="b.archived"
+            mat-icon-button
+            matTooltip="Unarchive Book"
+            (click)="toggleArchive(b)"
+            class="action-btn unarchive-btn"
+          >
+            <mat-icon>restore</mat-icon>
+          </button>
+        </td>
+      </tr>
+
+      <tr *ngIf="books.length === 0">
+        <td colspan="10" class="no-results">No books found</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Loading Template -->
+  <ng-template #loadingTpl>
+    <div class="loading">Loading inventory...</div>
+  </ng-template>
+
+  <!-- ---------------- Pagination ---------------- -->
+  <div class="pager" *ngIf="totalPages > 1 && !showMostRented">
+    <button (click)="prev()" [disabled]="currentPage === 1">Prev</button>
+    <button (click)="next()" [disabled]="currentPage === totalPages">Next</button>
+  </div>
+
+  <!-- ---------------- Book Add/Edit Modal ---------------- -->
+  <div class="modal fade show" tabindex="-1" *ngIf="showBookModal"
+       style="display:block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
+
+        <!-- HEADER -->
+        <div class="modal-header gradient-header">
+          <h5 class="modal-title">{{ selectedBookId ? 'Edit Book' : 'Add New Book' }}</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+        </div>
+
+        <!-- BODY -->
+        <div class="modal-body">
+          <form [formGroup]="bookForm" class="form-grid">
+
+            <!-- TITLE -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">menu_book</mat-icon>
+                Book Title <span>*</span>
+              </label>
+              <input type="text" class="form-control" formControlName="title" placeholder="Enter Book Title" />
+              <div class="text-danger" *ngIf="bookForm.get('title')?.touched && bookForm.get('title')?.invalid">
+                {{ getErrorMessage('title') }}
+              </div>
+            </div>
+
+            <!-- ISBN -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">tag</mat-icon>
+                ISBN <span>*</span>
+              </label>
+              <input type="text" class="form-control" formControlName="isbn" placeholder="Enter ISBN" />
+              <div class="text-danger" *ngIf="bookForm.get('isbn')?.touched && bookForm.get('isbn')?.invalid">
+                {{ getErrorMessage('isbn') }}
+              </div>
+            </div>
+
+            <!-- TOTAL COPIES -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">inventory_2</mat-icon>
+                Total Copies <span>*</span>
+              </label>
+              <input type="number" class="form-control" formControlName="totalCopies" />
+              <div class="text-danger" *ngIf="bookForm.get('totalCopies')?.touched && bookForm.get('totalCopies')?.invalid">
+                {{ getErrorMessage('totalCopies') }}
+              </div>
+            </div>
+
+            <!-- AVAILABLE COPIES -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">check_circle</mat-icon>
+                Available Copies <span>*</span>
+              </label>
+              <input type="number" class="form-control" formControlName="availableCopies" />
+              <div class="text-danger" *ngIf="bookForm.get('availableCopies')?.touched && bookForm.get('availableCopies')?.invalid">
+                {{ getErrorMessage('availableCopies') }}
+              </div>
+            </div>
+
+            <!-- RENTED (AUTO) -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">shopping_cart</mat-icon>
+                Rented Copies
+              </label>
+              <input type="number" class="form-control" [value]="bookForm.value.totalCopies - bookForm.value.availableCopies" disabled />
+            </div>
+
+            <!-- MIN STOCK -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">warning</mat-icon>
+                Min Stock <span>*</span>
+              </label>
+              <input type="number" class="form-control" formControlName="minStock" />
+              <div class="text-danger" *ngIf="bookForm.get('minStock')?.touched && bookForm.get('minStock')?.invalid">
+                {{ getErrorMessage('minStock') }}
+              </div>
+            </div>
+
+            <!-- CATEGORY -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">category</mat-icon>
+                Category <span>*</span>
+              </label>
+              <select class="form-control select-with-icon" formControlName="categoryId">
+                <option [value]="0">📚 Select Category</option>
+                <option *ngFor="let c of categories" [value]="c.id">📖 {{ c.name }}</option>
+              </select>
+              <div class="text-danger" *ngIf="bookForm.get('categoryId')?.touched && bookForm.get('categoryId')?.invalid">
+                {{ getErrorMessage('categoryId') }}
+              </div>
+            </div>
+
+            <!-- AUTHOR -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">person</mat-icon>
+                Author <span>*</span>
+              </label>
+              <select class="form-control select-with-icon" formControlName="authorId">
+                <option [value]="0">✍️ Select Author</option>
+                <option *ngFor="let a of authors" [value]="a.id">👤 {{ a.name }}</option>
+              </select>
+              <div class="text-danger" *ngIf="bookForm.get('authorId')?.touched && bookForm.get('authorId')?.invalid">
+                {{ getErrorMessage('authorId') }}
+              </div>
+            </div>
+
+            <!-- PUBLISHER -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">business</mat-icon>
+                Publisher <span>*</span>
+              </label>
+              <select class="form-control select-with-icon" formControlName="publisherId">
+                <option [value]="0">🏢 Select Publisher</option>
+                <option *ngFor="let p of publishers" [value]="p.id">🏛️ {{ p.name }}</option>
+              </select>
+              <div class="text-danger" *ngIf="bookForm.get('publisherId')?.touched && bookForm.get('publisherId')?.invalid">
+                {{ getErrorMessage('publisherId') }}
+              </div>
+            </div>
+
+            <!-- LOCATION -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">place</mat-icon>
+                Location <span>*</span>
+              </label>
+              <input type="text" class="form-control" formControlName="shelfLocation" placeholder="e.g., Shelf A-3" />
+              <div class="text-danger" *ngIf="bookForm.get('shelfLocation')?.touched && bookForm.get('shelfLocation')?.invalid">
+                {{ getErrorMessage('shelfLocation') }}
+              </div>
+            </div>
+
+            <!-- PAGES -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">description</mat-icon>
+                Pages <span>*</span>
+              </label>
+              <input type="number" class="form-control" formControlName="pages" />
+              <div class="text-danger" *ngIf="bookForm.get('pages')?.touched && bookForm.get('pages')?.invalid">
+                {{ getErrorMessage('pages') }}
+              </div>
+            </div>
+
+            <!-- BINDING -->
+            <div class="form-group">
+              <label>
+                <mat-icon class="label-icon">auto_stories</mat-icon>
+                Binding <span>*</span>
+              </label>
+              <input type="text" class="form-control" formControlName="binding" placeholder="e.g., Hardcover, Paperback" />
+              <div class="text-danger" *ngIf="bookForm.get('binding')?.touched && bookForm.get('binding')?.invalid">
+                {{ getErrorMessage('binding') }}
+              </div>
+            </div>
+
+            <!-- IMAGE URL -->
+            <div class="form-group" style="flex:1 1 100%;">
+              <label>
+                <mat-icon class="label-icon">image</mat-icon>
+                Image URL <span>*</span>
+              </label>
+              <input type="text" class="form-control" formControlName="imageUrl" placeholder="https://example.com/image.jpg" />
+              <div class="text-danger" *ngIf="bookForm.get('imageUrl')?.touched && bookForm.get('imageUrl')?.invalid">
+                {{ getErrorMessage('imageUrl') }}
+              </div>
+            </div>
+
+            <!-- DESCRIPTION -->
+            <div class="form-group" style="flex:1 1 100%;">
+              <label>
+                <mat-icon class="label-icon">notes</mat-icon>
+                Description <span>*</span>
+              </label>
+              <textarea class="form-control" rows="3" formControlName="description" placeholder="Enter book description"></textarea>
+              <div class="text-danger" *ngIf="bookForm.get('description')?.touched && bookForm.get('description')?.invalid">
+                {{ getErrorMessage('description') }}
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="modal-footer">
+          <button class="btn btn-danger" (click)="closeModal()">Cancel</button>
+          <button class="btn btn-primary" (click)="submitBook()">
+            {{ selectedBookId ? 'Update Book' : 'Add Book' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------- Rental History Modal ---------------- -->
+  <div class="modal fade show" tabindex="-1" *ngIf="showRentalHistoryModal" style="display:block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
+
+        <div class="modal-header gradient-header">
+          <h5 class="modal-title">
+            <mat-icon style="vertical-align: middle; margin-right: 8px;">visibility</mat-icon>
+            Rental History - {{ selectedBookTitle || selectedBookIsbn }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeRentalHistoryModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div *ngIf="loadingHistory" class="loading">Loading rental history...</div>
+
+          <div *ngIf="!loadingHistory">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="font-size: 16px; font-weight: 600;">
+                <mat-icon style="vertical-align: middle; color: #2563eb;">analytics</mat-icon>
+                Total Rentals: <strong style="color: #2563eb;">{{ totalRentals }}</strong>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <!-- <button class="btn btn-primary" (click)="refresh()">
+                  <mat-icon style="vertical-align: middle; font-size: 18px; margin-right: 4px;">refresh</mat-icon>
+                  Refresh
+                </button> -->
+                <!-- <button class="btn" (click)="closeRentalHistoryModal()">Close</button> -->
+              </div>
+            </div>
+
+            <table class="users-table" *ngIf="rentalHistory && rentalHistory.length; else noHistoryTpl">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Order #</th>
+                  <th>User</th>
+                  <th>Rented On</th>
+                  <th>Expected Return</th>
+                  <th>Actual Return</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of rentalHistory; let idx = index">
+                  <td>{{ idx + 1 }}</td>
+                  <td>{{ h.orderNumber }}</td>
+                  <td>{{ h.userName }} ({{ h.userId }})</td>
+                  <td>{{ h.rentedOn | date:'medium' }}</td>
+                  <td>{{ h.expectedReturnDate | date:'mediumDate' }}</td>
+                  <td>{{ h.actualReturnDate ? (h.actualReturnDate | date:'medium') : '—' }}</td>
+                  <td>
+                    <span class="status-badge"
+                          [ngClass]="{
+                            'status-returned': h.status === 'Returned',
+                            'status-overdue': h.status === 'Overdue',
+                            'status-active': h.status === 'Active'
+                          }">
+                      {{ h.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <ng-template #noHistoryTpl>
+              <div class="no-results">
+                <mat-icon style="font-size: 48px; color: #cbd5e1;">inbox</mat-icon>
+                <p>No rental history found for this book.</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary" (click)="closeRentalHistoryModal()">Close</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>

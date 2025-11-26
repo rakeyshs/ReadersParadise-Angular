@@ -1,0 +1,169 @@
+.users-root {
+  display: block;
+  padding: 16px;
+  font-family: Arial, sans-serif;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbar .search {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.toolbar .search svg.icon-search {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: #555;
+}
+
+.input-search {
+  padding: 6px 28px 6px 28px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #888;
+}
+
+.clear-btn:hover {
+  color: #555;
+}
+
+/* Right toolbar */
+.toolbar .right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.select-size {
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-secondary {
+  background-color: #1976d2;
+  color: #fff;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Table */
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.users-table th,
+.users-table td {
+  padding: 10px 8px;
+  text-align: left;
+  font-size: 14px;
+  border-bottom: 1px solid #ddd;
+}
+
+.users-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.users-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.users-table img {
+  display: block;
+  border-radius: 2px;
+}
+
+.role-badge {
+  display: inline-block;
+  background-color: #e0e0e0;
+  color: #333;
+  padding: 2px 6px;
+  margin-right: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.yes {
+  color: green;
+  font-weight: bold;
+}
+
+.no {
+  color: red;
+  font-weight: bold;
+}
+
+.no-results {
+  text-align: center;
+  padding: 12px;
+  color: #555;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  font-size: 16px;
+}
+
+/* Pagination */
+.pager {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.pager button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #fff;
+}
+
+.pager button.active {
+  background-color: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+
+.pager button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -1,0 +1,381 @@
+/* ---------------- Container ---------------- */
+.plans-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 24px;
+}
+
+/* ---------------- Plan Card ---------------- */
+.plan-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  transition: 0.28s ease;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+}
+
+.plan-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+}
+
+/* ---------------- Top-right Controls ---------------- */
+.top-right-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
+  z-index: 2;
+}
+
+/* Edit Button */
+.edit-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.edit-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.25);
+}
+
+.edit-btn.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+/* Active / Inactive Button */
+.plan-status {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.25s ease;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  background: linear-gradient(90deg, #10b981, #06d6a0);
+}
+
+.plan-status:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.25);
+}
+
+.plan-status.inactive-badge {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* ---------------- Plan Header ---------------- */
+.plan-header h3 {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.price {
+  margin: 0;
+  font-size: 15px;
+  color: #4b5563;
+}
+
+/* ---------------- Features ---------------- */
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0;
+}
+
+
+.active-badge {
+  background: #0bb500;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.inactive-badge {
+  background: #d9534f;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.check {
+  color: #10b981;
+  font-weight: bold;
+}
+
+/* ---------------- Stats ---------------- */
+.stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 15px;
+}
+
+/* ---------------- Inactive Card ---------------- */
+.plan-card.inactive {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 768px) {
+  .plans-container {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .edit-btn,
+  .plan-status {
+    font-size: 12px;
+    padding: 5px 12px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .plan-header h3 { font-size: 18px; }
+  .price { font-size: 14px; }
+  .features li { font-size: 13px; }
+  .stats { font-size: 12px; }
+}
+
+/* ---------------- Modal ---------------- */
+.modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+
+  /* 🔥 NEW: Full-screen fix */
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.gradient-header {
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #fff;
+  padding: 14px 20px;
+}
+
+.header-section {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* 🔥 NEW: Scroll inside modal body */
+.modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  max-height: calc(90vh - 140px);
+  padding-right: 12px;
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    height: 95vh;
+  }
+
+  .modal-body {
+    max-height: calc(95vh - 130px);
+  }
+}
+
+.form-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.form-group {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  flex: 1 1 100%;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #333;
+}
+
+.form-group label span {
+  color: red;
+}
+
+.form-control,
+.form-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 3px rgba(37,99,235,0.4);
+}
+
+.modal-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  border: none;
+}
+
+.btn-danger:hover {
+  opacity: 0.95;
+}
+
+/* Custom select arrow */
+.form-control.select-with-icon {
+  appearance: none;
+  background: #fff url('data:image/svg+xml;utf8,<svg fill="%23333" height="14" viewBox="0 0 24 24" width="14" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')
+    no-repeat right 12px center;
+  background-size: 14px;
+  padding-right: 32px;
+}
+
+/* Top-right Controls */
+.top-right-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 10px;
+  z-index: 2;
+}
+
+/* Edit Button */
+.edit-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.edit-btn:hover:not(.disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.25);
+}
+
+.edit-btn.disabled,
+.edit-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Delete Button */
+.delete-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.delete-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 12px rgba(239,68,68,0.4);
+}
+
+/* Active / Inactive Button */
+.plan-status {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.25s ease;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  border: none;
+}
+
+.plan-status.active-badge {
+  background: linear-gradient(90deg, #10b981, #06d6a0);
+}
+
+.plan-status.active-badge:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 12px rgba(16, 185, 129, 0.4);
+}
+
+.plan-status.inactive-badge {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.plan-status.inactive-badge:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 12px rgba(239, 68, 68, 0.4);
+}
