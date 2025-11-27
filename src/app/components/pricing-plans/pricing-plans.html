@@ -56,10 +56,15 @@
       </li>
     </ul>
 
+            <p class="duration">Max Concurrent Books: {{ p.maxConcurrentBooks }}</p>
+<p class="duration">Max Books/Month: {{ p.maxBooksPerMonth }}</p>
+<p class="duration">Rental Days: {{ p.rentalDays }}</p>
+
     <div class="stats">
       <p>Subscribers: {{ p.subscribers }}</p>
       <p>Revenue: AED {{ p.revenue }}</p>
     </div>
+
 
   </div>
 </div>
@@ -82,7 +87,7 @@
 
             <!-- NAME -->
             <div class="form-group">
-              <label>Plan Name *</label>
+              <label>Plan Name <span style="color: red;">*</span></label>
               <input type="text" formControlName="name" class="form-control">
               <div class="text-danger" *ngIf="isInvalid('name')">
                 <small *ngIf="planForm.get('name')?.errors?.['required']">Name is required.</small>
@@ -93,7 +98,7 @@
 
             <!-- TYPE -->
             <div class="form-group">
-              <label>Plan Type *</label>
+              <label>Plan Type <span style="color: red;">*</span></label>
               <input type="text" formControlName="type" class="form-control">
               <div class="text-danger" *ngIf="isInvalid('type')">
                 <small *ngIf="planForm.get('type')?.errors?.['required']">Type is required.</small>
@@ -103,7 +108,7 @@
 
             <!-- PRICE -->
             <div class="form-group">
-              <label>Price *</label>
+              <label>Price <span style="color: red;">*</span></label>
               <input type="number" formControlName="price" class="form-control">
               <div class="text-danger" *ngIf="isInvalid('price')">
                 <small *ngIf="planForm.get('price')?.errors?.['required']">Price is required.</small>
@@ -113,7 +118,7 @@
 
             <!-- DURATION -->
             <div class="form-group">
-              <label>Duration (Months) *</label>
+              <label>Duration (Months) <span style="color: red;">*</span></label>
               <input type="number" formControlName="durationMonths" class="form-control">
               <div class="text-danger" *ngIf="isInvalid('durationMonths')">
                 <small *ngIf="planForm.get('durationMonths')?.errors?.['required']">Duration required.</small>
@@ -124,7 +129,7 @@
 
             <!-- DEPOSIT -->
             <div class="form-group">
-              <label>Refundable Deposit *</label>
+              <label>Refundable Deposit <span style="color: red;">*</span></label>
               <input type="number" formControlName="refundableDeposit" class="form-control">
               <div class="text-danger" *ngIf="isInvalid('refundableDeposit')">
                 <small *ngIf="planForm.get('refundableDeposit')?.errors?.['required']">Deposit required.</small>
@@ -134,7 +139,7 @@
 
             <!-- DESCRIPTION -->
             <div class="form-group full-width">
-              <label>Description *</label>
+              <label>Description <span style="color: red;">*</span></label>
               <textarea rows="2" formControlName="description" class="form-control"></textarea>
               <div class="text-danger" *ngIf="isInvalid('description')">
                 <small *ngIf="planForm.get('description')?.errors?.['required']">Description required.</small>
@@ -146,7 +151,7 @@
 
             <!-- FEATURES -->
             <div class="form-group full-width">
-              <label>Features (each on new line) *</label>
+              <label>Features (each on new line) <span style="color: red;">*</span></label>
               <textarea rows="3" formControlName="features" class="form-control"></textarea>
               <div class="text-danger" *ngIf="isInvalid('features')">
                 <small *ngIf="planForm.get('features')?.errors?.['required']">Features required.</small>
@@ -156,7 +161,7 @@
 
             <!-- BENEFITS -->
             <div class="form-group full-width">
-              <label>Benefits *</label>
+              <label>Benefits <span style="color: red;">*</span></label>
               <textarea rows="3" formControlName="benefits" class="form-control"></textarea>
               <div class="text-danger" *ngIf="isInvalid('benefits')">
                 <small *ngIf="planForm.get('benefits')?.errors?.['required']">Benefits required.</small>
@@ -164,9 +169,37 @@
               </div>
             </div>
 
+            <!-- MAX CONCURRENT BOOKS -->
+<div class="form-group">
+  <label>Max Concurrent Books <span style="color: red;">*</span></label>
+  <input type="number" formControlName="maxConcurrentBooks" class="form-control">
+  <div class="text-danger" *ngIf="isInvalid('maxConcurrentBooks')">
+    <small>Required & must be ≥ 1.</small>
+  </div>
+</div>
+
+<!-- MAX BOOKS PER MONTH -->
+<div class="form-group">
+  <label>Max Books Per Month <span style="color: red;">*</span></label>
+  <input type="number" formControlName="maxBooksPerMonth" class="form-control">
+  <div class="text-danger" *ngIf="isInvalid('maxBooksPerMonth')">
+    <small>Required & must be ≥ 1.</small>
+  </div>
+</div>
+
+<!-- RENTAL DAYS -->
+<div class="form-group">
+  <label>Rental Days <span style="color: red;">*</span></label>
+  <input type="number" formControlName="rentalDays" class="form-control">
+  <div class="text-danger" *ngIf="isInvalid('rentalDays')">
+    <small>Required & must be ≥ 1.</small>
+  </div>
+</div>
+
+
             <!-- STATUS -->
             <div class="form-group">
-              <label>Status</label>
+              <label>Status <span style="color: red;">*</span></label>
               <select formControlName="isActive" class="form-control">
                 <option [value]="true">Active</option>
                 <option [value]="false">Inactive</option>

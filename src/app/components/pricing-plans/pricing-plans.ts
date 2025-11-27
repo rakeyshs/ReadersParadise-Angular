@@ -28,43 +28,49 @@ export class PricingPlans implements OnInit {
     this.loadPlans();
 
     // ⭐ FULL VALIDATION ADDED HERE
-    this.planForm = this.fb.group({
-      name: ['', [
-        Validators.required,
-        Validators.minLength(3),
-        Validators.pattern(/^[A-Za-z0-9 ]+$/)
-      ]],
-      type: ['', [
-        Validators.required,
-        Validators.pattern(/^[A-Za-z ]+$/)
-      ]],
-      price: [null, [
-        Validators.required,
-        Validators.min(1)
-      ]],
-      durationMonths: [null, [
-        Validators.required,
-        Validators.min(1),
-        Validators.max(36)
-      ]],
-      refundableDeposit: [null, [
-        Validators.required,
-        Validators.min(0)
-      ]],
-      description: ['', [
-        Validators.required,
-        Validators.minLength(10)
-      ]],
-      features: ['', [
-        Validators.required,
-        Validators.minLength(5)
-      ]],
-      benefits: ['', [
-        Validators.required,
-        Validators.minLength(5)
-      ]],
-      isActive: [true]
-    });
+this.planForm = this.fb.group({
+  name: ['', [
+    Validators.required,
+    Validators.minLength(3),
+    Validators.pattern(/^[A-Za-z0-9 ]+$/)
+  ]],
+  type: ['', [
+    Validators.required,
+    Validators.pattern(/^[A-Za-z ]+$/)
+  ]],
+  price: [null, [
+    Validators.required,
+    Validators.min(1)
+  ]],
+  durationMonths: [null, [
+    Validators.required,
+    Validators.min(1),
+    Validators.max(36)
+  ]],
+  refundableDeposit: [null, [
+    Validators.required,
+    Validators.min(0)
+  ]],
+  description: ['', [
+    Validators.required,
+    Validators.minLength(10)
+  ]],
+  features: ['', [
+    Validators.required,
+    Validators.minLength(5)
+  ]],
+  benefits: ['', [
+    Validators.required,
+    Validators.minLength(5)
+  ]],
+  isActive: [true],
+
+  // ✅ NEW FIELDS
+  maxConcurrentBooks: [null, [Validators.required, Validators.min(1)]],
+  maxBooksPerMonth: [null, [Validators.required, Validators.min(1)]],
+  rentalDays: [null, [Validators.required, Validators.min(1)]]
+});
+
   }
 
   // ================= LOAD PLANS =================
@@ -93,13 +99,16 @@ this.plans = res.plans.map((p: any) => ({
   features: Array.isArray(p.features) ? p.features : [],
   benefits: Array.isArray(p.benefits) ? p.benefits : [],
   description: p.description,
-  
-  // FIX → Convert string to boolean
   isActive: p.isActive === true || p.isActive === "active",
-
   subscribers: p.totalSubscribers || 0,
-  revenue: p.price * (p.totalSubscribers || 0)
+  revenue: p.price * (p.totalSubscribers || 0),
+
+  // ✅ NEW FIELDS
+  maxConcurrentBooks: p.maxConcurrentBooks || 0,
+  maxBooksPerMonth: p.maxBooksPerMonth || 0,
+  rentalDays: p.rentalDays || 0
 }));
+
 
 
           localStorage.setItem('plans', JSON.stringify(this.plans));
@@ -131,17 +140,23 @@ this.plans = res.plans.map((p: any) => ({
     this.isEdit = true;
     this.selectedId = plan.id;
 
-    this.planForm.patchValue({
-      name: plan.name,
-      type: plan.type,
-      price: plan.price,
-      durationMonths: plan.durationMonths,
-      refundableDeposit: plan.refundableDeposit,
-      features: plan.features.join("\n"),
-      benefits: plan.benefits.join("\n"),
-      description: plan.description,
-      isActive: plan.isActive
-    });
+this.planForm.patchValue({
+  name: plan.name,
+  type: plan.type,
+  price: plan.price,
+  durationMonths: plan.durationMonths,
+  refundableDeposit: plan.refundableDeposit,
+  features: plan.features.join("\n"),
+  benefits: plan.benefits.join("\n"),
+  description: plan.description,
+  isActive: plan.isActive,
+
+  // ✅ NEW FIELDS
+  maxConcurrentBooks: plan.maxConcurrentBooks,
+  maxBooksPerMonth: plan.maxBooksPerMonth,
+  rentalDays: plan.rentalDays
+});
+
 
     this.showModal = true;
   }
@@ -169,18 +184,24 @@ this.plans = res.plans.map((p: any) => ({
 
     const raw = this.planForm.value;
 
-    const payload = {
-      name: raw.name,
-      type: raw.type,
-      price: raw.price,
-      durationMonths: raw.durationMonths,
-      refundableDeposit: raw.refundableDeposit,
-      description: raw.description,
-      features: raw.features.split("\n"),
-      benefits: raw.benefits.split("\n"),
-      displayOrder: 1000,
-      isActive: raw.isActive
-    };
+const payload = {
+  name: raw.name,
+  type: raw.type,
+  price: raw.price,
+  durationMonths: raw.durationMonths,
+  refundableDeposit: raw.refundableDeposit,
+  description: raw.description,
+  features: raw.features.split("\n"),
+  benefits: raw.benefits.split("\n"),
+  displayOrder: 1000,
+  isActive: raw.isActive,
+
+  // ✅ NEW FIELDS
+  maxConcurrentBooks: raw.maxConcurrentBooks,
+  maxBooksPerMonth: raw.maxBooksPerMonth,
+  rentalDays: raw.rentalDays
+};
+
 
     const headers = {
       'Content-Type': 'application/json',
