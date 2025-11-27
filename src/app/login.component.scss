@@ -1,0 +1,270 @@
+:root {
+  --primary: #2563eb;
+  --error: #dc2626;
+}
+
+:host {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.login-hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ✨ Updated gradient colors */
+  background: linear-gradient(90deg, #1565c0, #0ea5e9);
+  position: relative;
+  padding: 20px;
+}
+
+.center-wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* ---------- Brand ---------- */
+.brand-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  height: 100px;
+  width: 100px;
+  object-fit: contain;
+}
+
+.brand-text {
+  text-align: left;
+}
+
+.brand-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.brand-sub {
+  color: rgba(255, 255, 255, 0.85);
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+/* ---------- Card ---------- */
+.card {
+  width: 400px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  padding: 34px 36px;
+  text-align: left;
+}
+
+.card-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.card-sub {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 6px 0 22px;
+}
+
+/* ---------- Fields ---------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.label-text {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.field input {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field input:focus {
+  border-color: var(--primary);
+}
+
+input.invalid {
+  border-color: var(--error);
+}
+
+/* ---------- Password ---------- */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 42px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.toggle-password:hover {
+  color: var(--primary);
+}
+
+/* ---------- Error ---------- */
+.error-text {
+  color: red;
+  font-size: 13px;
+  margin-top: 6px;
+  line-height: 1.3;
+}
+
+/* ---------- Remember + Forgot ---------- */
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  margin: 6px 0 12px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #374151;
+}
+
+.forgot {
+  color: var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.forgot:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Button ---------- */
+.primary {
+  width: 100%;
+  background: linear-gradient(90deg, #2563eb, #1e40af);
+  color: white;
+  font-weight: 600;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  margin-top: 10px;
+  transition: background 0.3s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.primary:hover:not([disabled]) {
+  background: linear-gradient(90deg, #1e3a8a, #1d4ed8);
+}
+
+.primary[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Alerts ---------- */
+.alert {
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.alert.error {
+  background: #fee2e2;
+  color: var(--error);
+  border: 1px solid #fecaca;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 500px) {
+  .card {
+    width: 92%;
+    padding: 24px;
+  }
+
+  .brand-logo-wrap {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .brand-text {
+    text-align: center;
+  }
+
+  .brand-title {
+    font-size: 24px;
+  }
+
+  .brand-sub {
+    font-size: 13px;
+  }
+}
+.mat-icon {
+    -webkit-user-select: none;
+    user-select: none;
+    background-repeat: no-repeat;
+    display: inline-block;
+    fill: currentColor;
+    height: 20px;
+    width: 24px;
+    overflow: hidden;
+}

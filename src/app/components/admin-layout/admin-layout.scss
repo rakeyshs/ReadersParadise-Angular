@@ -1,0 +1,243 @@
+:host {
+  display: block;
+  font-family: Inter, Arial, sans-serif;
+}
+
+.admin-root {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid rgba(11, 63, 102, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+/* ---------- Brand Section ---------- */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.brand-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.brand-logo {
+  height: 90px;
+  width: 90px;
+  border-radius: 16px;
+  object-fit: cover;
+  margin-bottom: 10px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.brand-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.brand-title {
+  font-weight: 800;
+  color: #1565c0;
+  line-height: 1;
+  font-size: 22px;
+}
+
+.brand-sub {
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+/* ---------- Sidebar Menu ---------- */
+.menu {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.menu.single {
+  margin-top: 6px;
+}
+
+.menu-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  color: #07163a;
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: all 160ms ease;
+}
+
+.menu-item .icon {
+  font-size: 18px;
+}
+
+.menu-item:hover {
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.06), rgba(11, 115, 198, 0.04));
+}
+
+.menu-item.admin-only {
+  background: linear-gradient(90deg, #1565c0, #0ea5e9);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-top: 10px;
+  box-shadow: 0 8px 20px rgba(11, 115, 198, 0.08);
+}
+
+.menu-item.active {
+  background: linear-gradient(90deg, #1565c0, #0ea5e9);
+  color: #fff;
+}
+
+.menu-item.active .icon {
+  opacity: 0.98;
+}
+
+/* ---------- Main Area ---------- */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Topbar ---------- */
+.topbar {
+  // height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid rgba(11, 63, 102, 0.04);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.9));
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #07163a;
+}
+
+/* ---------- Top Right Section ---------- */
+.top-right {
+  display: flex;
+  align-items: center;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #0ea5e9, #1565c0);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- Logout Button ---------- */
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(25, 118, 185, 0.12);
+  background: transparent;
+  color: #1565c0;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+  box-shadow: 0 2px 6px rgba(11, 63, 102, 0.04);
+}
+
+.btn-logout svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.95;
+}
+
+.btn-logout:hover {
+  background: linear-gradient(90deg, rgba(25, 118, 185, 0.06), rgba(6, 182, 212, 0.04));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(11, 115, 198, 0.06);
+}
+
+.btn-logout:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(11, 63, 102, 0.05);
+}
+
+/* ---------- Content Area ---------- */
+.content {
+  padding: 28px;
+  overflow: auto;
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.02), rgba(6, 182, 212, 0.01));
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 72px;
+  }
+  .menu-item .label {
+    display: none;
+  }
+  .brand-title,
+  .brand-sub {
+    display: none;
+  }
+}
+/* ---------- Active Menu Highlight ---------- */
+.menu-item.active {
+  background: linear-gradient(90deg, #0e8de1, #1565c0);
+  color: #fff;
+  font-weight: 400;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.25);
+  transform: translateY(-1px);
+  border-left: 4px solid #ffffff; /* subtle left indicator */
+}
+
+.menu-item.active .icon {
+  opacity: 1;
+  transform: scale(1.1);
+}

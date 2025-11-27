@@ -1,0 +1,794 @@
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import Swal from 'sweetalert2';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+interface Book {
+  id: number;
+  title: string;
+  totalCopies: number;
+  availableCopies: number;
+  rentedCopies: number;
+  minStock: number;
+  location: string;
+  isbn?: string;
+  authors?: any[];
+  pages?: number;
+  binding?: string;
+  category?: any;
+  publisher?: any;
+  imageUrl?: string;
+  archived: boolean;
+  description?: string;
+  shelfLocation?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+export interface Author {
+  id: number;
+  name: string;
+}
+
+interface Publisher {
+  id: number;
+  name: string;
+}
+
+interface RentalHistory {
+  orderId: number;
+  orderNumber: string;
+  userId: string;
+  userName: string;
+  rentedOn: string;
+  expectedReturnDate: string;
+  actualReturnDate: string | null;
+  status: string;
+}
+
+@Component({
+  selector: 'app-admin-inventory',
+  standalone: true,
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    FormsModule, 
+    HttpClientModule, 
+    MatButtonModule, 
+    MatIconModule, 
+    MatTooltipModule
+  ],
+  templateUrl: './admin-inventory.html',
+  styleUrls: ['./admin-inventory.scss']
+})
+export class AdminInventory implements OnInit {
+  books: Book[] = [];
+  searchTerm = '';
+  loading = false;
+  publishers: Publisher[] = [];
+  currentPage = 1;
+  pageSize = 10;
+  totalPages = 0;
+  totalCount = 0;
+  pageSizes = [5, 10, 20];
+  pages: number[] = [];
+  authors: Author[] = [];
+  categories: Category[] = [];
+  bookForm: FormGroup;
+  selectedBookId: number | null = null;
+  showBookModal: boolean = false;
+  
+  showMostRented: boolean = false;
+  
+  showRentalHistoryModal: boolean = false;
+  rentalHistory: RentalHistory[] = [];
+  selectedBookTitle: string = '';
+  selectedBookIsbn: string = '';
+  totalRentals: number = 0;
+  loadingHistory: boolean = false;
+
+  // Properties for searchable dropdowns
+  categorySearch: string = '';
+  authorSearch: string = '';
+  publisherSearch: string = '';
+  showCategoryDropdown: boolean = false;
+  showAuthorDropdown: boolean = false;
+  showPublisherDropdown: boolean = false;
+
+  // Multiple author selection
+  selectedAuthors: Author[] = [];
+
+  private initialAvailableCopies: number = 0;
+  private initialTotalCopies: number = 0;
+
+  private readonly API_URL = 'https://primabi.co/api/v1/Books';
+
+  constructor(
+    private http: HttpClient,
+    private fb: FormBuilder,
+    private cdr: ChangeDetectorRef
+  ) {
+    this.bookForm = this.fb.group({
+      title: ['', [Validators.required, Validators.minLength(3)]],
+      isbn: [''],
+      description: [''],
+      pages: [0, [Validators.required, Validators.min(1)]],
+      binding: ['', Validators.required],
+      imageUrl: ['', [Validators.required, Validators.pattern('https?://.+')]],
+      shelfLocation: [''],
+      totalCopies: [0, [Validators.required, Validators.min(1)]],
+      availableCopies: [0, [Validators.required, Validators.min(0)]],
+      minStock: [0, [Validators.required, Validators.min(0)]],
+      categoryId: [0, [Validators.required, Validators.min(1)]],
+      publisherId: [0, [Validators.required, Validators.min(1)]]
+    });
+
+    // Auto-sync availableCopies with totalCopies when adding new book
+    this.bookForm.get('totalCopies')?.valueChanges.subscribe(value => {
+      if (!this.selectedBookId) {
+        this.bookForm.patchValue({ availableCopies: value || 0 }, { emitEvent: false });
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadCategories();
+    this.loadPublishers();
+    this.loadAuthors(); 
+    this.loadInventory();
+  }
+
+  get filteredCategories(): Category[] {
+    if (!this.categorySearch.trim()) {
+      return this.categories;
+    }
+    const search = this.categorySearch.toLowerCase();
+    return this.categories.filter(c => c.name.toLowerCase().includes(search));
+  }
+
+  get filteredAuthors(): Author[] {
+    if (!this.authorSearch.trim()) {
+      return this.authors;
+    }
+    const search = this.authorSearch.toLowerCase();
+    return this.authors.filter(a => a.name.toLowerCase().includes(search));
+  }
+
+  get filteredPublishers(): Publisher[] {
+    if (!this.publisherSearch.trim()) {
+      return this.publishers;
+    }
+    const search = this.publisherSearch.toLowerCase();
+    return this.publishers.filter(p => p.name.toLowerCase().includes(search));
+  }
+
+  selectCategory(category: Category): void {
+    this.bookForm.patchValue({ categoryId: category.id });
+    this.categorySearch = category.name;
+    this.showCategoryDropdown = false;
+  }
+
+  onCategoryBlur(): void {
+    setTimeout(() => {
+      this.showCategoryDropdown = false;
+    }, 200);
+  }
+
+  clearCategory(): void {
+    this.bookForm.patchValue({ categoryId: 0 });
+    this.categorySearch = '';
+  }
+
+  getSelectedCategoryName(): string {
+    const id = this.bookForm.get('categoryId')?.value;
+    const category = this.categories.find(c => c.id === id);
+    return category ? category.name : '';
+  }
+
+  // Multiple Author Selection Methods
+  selectAuthor(author: Author): void {
+    if (!this.selectedAuthors.find(a => a.id === author.id)) {
+      this.selectedAuthors.push(author);
+    }
+    this.authorSearch = '';
+    this.showAuthorDropdown = false;
+  }
+
+  removeAuthor(author: Author): void {
+    this.selectedAuthors = this.selectedAuthors.filter(a => a.id !== author.id);
+  }
+
+  onAuthorBlur(): void {
+    setTimeout(() => {
+      this.showAuthorDropdown = false;
+    }, 200);
+  }
+
+  clearAllAuthors(): void {
+    this.selectedAuthors = [];
+    this.authorSearch = '';
+  }
+
+  selectPublisher(publisher: Publisher): void {
+    this.bookForm.patchValue({ publisherId: publisher.id });
+    this.publisherSearch = publisher.name;
+    this.showPublisherDropdown = false;
+  }
+
+  onPublisherBlur(): void {
+    setTimeout(() => {
+      this.showPublisherDropdown = false;
+    }, 200);
+  }
+
+  clearPublisher(): void {
+    this.bookForm.patchValue({ publisherId: 0 });
+    this.publisherSearch = '';
+  }
+
+  getSelectedPublisherName(): string {
+    const id = this.bookForm.get('publisherId')?.value;
+    const publisher = this.publishers.find(p => p.id === id);
+    return publisher ? publisher.name : '';
+  }
+
+  onTotalCopiesChange(): void {
+    if (this.selectedBookId) {
+      const newTotal = this.bookForm.get('totalCopies')?.value || 0;
+      const oldTotal = this.initialTotalCopies;
+      const difference = newTotal - oldTotal;
+      
+      const newAvailable = this.initialAvailableCopies + difference;
+      
+      this.bookForm.patchValue({ 
+        availableCopies: Math.max(0, newAvailable) 
+      }, { emitEvent: false });
+    }
+  }
+
+  loadAuthors(): void {       
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.http.get<Author[]>(`${this.API_URL}/authors`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: res => {
+        this.authors = res;
+      },
+      error: () => {
+        Swal.fire('Error', 'Failed to load authors', 'error');
+      }
+    });
+  }
+
+  loadPublishers(): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.http.get<Publisher[]>(`${this.API_URL}/publishers`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: res => {
+        this.publishers = res;
+      },
+      error: () => {
+        Swal.fire('Error', 'Failed to load publishers', 'error');
+      }
+    });
+  }
+
+  loadCategories(): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.http.get<Category[]>(`${this.API_URL}/categories`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: res => this.categories = res,
+      error: () => Swal.fire('Error', 'Failed to load categories', 'error')
+    });
+  }
+
+  loadInventory(): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.loading = true;
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+    if (this.searchTerm.trim()) params.search = this.searchTerm;
+
+    this.http.get<{ data: any[]; totalCount: number }>(this.API_URL, {
+      headers: { Authorization: `Bearer ${token}` },
+      params
+    }).subscribe({
+      next: res => {
+        const result = res?.data || [];
+        this.books = result.map(b => this.mapApiToBook(b));
+        this.totalCount = res.totalCount || 0;
+        this.totalPages = Math.ceil(this.totalCount / this.pageSize);
+        this.pages = Array.from({ length: this.totalPages }, (_, i) => i + 1);
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        Swal.fire('Error', 'Failed to load books', 'error');
+      }
+    });
+  }
+
+  loadMostRented(): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.loading = true;
+    this.showMostRented = true;
+
+    this.http.get<{ success: boolean; data: any[]; total: number }>(
+      'https://primabi.co/api/v1/admin/books/most-rented?top=50',
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).subscribe({
+      next: res => {
+        if (res.success && res.data) {
+          this.books = res.data.map((item: any) => ({
+            id: item.bookId,
+            title: item.title,
+            isbn: item.isbn,
+            totalCopies: 0,
+            availableCopies: 0,
+            rentedCopies: item.totalRentals,
+            minStock: 0,
+            location: '-',
+            authors: item.authors?.map((name: string) => ({ name })) || [],
+            category: item.category,
+            publisher: '',
+            archived: false,
+            description: ''
+          }));
+          this.totalCount = res.total || 0;
+          this.totalPages = 1;
+          this.pages = [1];
+        }
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        this.showMostRented = false;
+        Swal.fire('Error', 'Failed to load most rented books', 'error');
+      }
+    });
+  }
+
+  clearMostRentedFilter(): void {
+    this.showMostRented = false;
+    this.currentPage = 1;
+    this.loadInventory();
+  }
+
+  viewRentalHistory(book: Book, event?: any): void {
+    if (event) event.stopPropagation();
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.selectedBookId = book.id;
+    this.selectedBookTitle = book.title;
+    this.selectedBookIsbn = book.isbn || '';
+    this.loadingHistory = true;
+    this.showRentalHistoryModal = true;
+
+    this.http.get<{ success: boolean; data: any }>(
+      `https://primabi.co/api/v1/admin/books/${book.id}/rental-history`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).subscribe({
+      next: res => {
+        if (res.success && res.data) {
+          this.rentalHistory = res.data.history || [];
+          this.totalRentals = res.data.totalRentals || 0;
+        }
+        this.loadingHistory = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingHistory = false;
+        Swal.fire('Error', 'Failed to load rental history', 'error');
+      }
+    });
+  }
+
+  closeRentalHistoryModal(): void {
+    this.showRentalHistoryModal = false;
+    this.rentalHistory = [];
+    this.selectedBookId = null;
+    this.selectedBookTitle = '';
+    this.selectedBookIsbn = '';
+    this.totalRentals = 0;
+  }
+
+  private mapApiToBook(apiBook: any): any {
+    const authors = Array.isArray(apiBook.authors)
+      ? apiBook.authors.map((a: any) => {
+          if (typeof a === 'string') return { id: 0, name: a };
+          return { id: a.id || 0, name: a.name || '' };
+        })
+      : [];
+
+    const category = typeof apiBook.category === 'string' 
+      ? apiBook.category 
+      : (apiBook.category?.name || '');
+
+    const publisher = typeof apiBook.publisher === 'string'
+      ? apiBook.publisher
+      : (apiBook.publisher?.name || '');
+
+    return {
+      id: apiBook.id,
+      title: apiBook.title || '',
+      isbn: apiBook.isbn || '',
+      description: apiBook.description || '',
+      pages: apiBook.pages || 0,
+      binding: apiBook.binding || '',
+      imageUrl: apiBook.imageUrl || '',
+      shelfLocation: apiBook.shelfLocation || '',
+      totalCopies: apiBook.totalCopies || 0,
+      availableCopies: apiBook.availableCopies || 0,
+      minStock: apiBook.minStock || 0,
+      rentedCopies: (apiBook.totalCopies || 0) - (apiBook.availableCopies || 0),
+      category,
+      publisher,
+      authors,
+      archived: apiBook.archived || false,
+    };
+  }
+
+  applyFilter(): void {
+    this.currentPage = 1;
+    this.loadInventory();
+  }
+
+  onSearchInput(): void {
+    if (!this.searchTerm || this.searchTerm.trim() === '') {
+      this.clearSearch();
+    }
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.currentPage = 1;
+    this.loadInventory();
+  }
+
+  setPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.loadInventory();
+  }
+
+  prev(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadInventory();
+    }
+  }
+
+  next(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadInventory();
+    }
+  }
+
+  refresh(): void {
+    if (this.showMostRented) {
+      this.loadMostRented();
+    } else {
+      this.loadInventory();
+    }
+  }
+
+  openAddBookModal(): void {
+    this.selectedBookId = null;
+    this.initialAvailableCopies = 0;
+    this.initialTotalCopies = 0;
+    this.selectedAuthors = [];
+    this.bookForm.reset({
+      title: '',
+      isbn: '',
+      description: '',
+      pages: 0,
+      binding: '',
+      imageUrl: '',
+      shelfLocation: '',
+      totalCopies: 0,
+      availableCopies: 0,
+      minStock: 0,
+      categoryId: 0,
+      publisherId: 0
+    });
+    this.categorySearch = '';
+    this.authorSearch = '';
+    this.publisherSearch = '';
+    this.showBookModal = true;
+  }
+
+  editBook(book: any, event?: any) {
+    if (event) event.stopPropagation();
+
+    this.selectedBookId = book.id;
+    this.initialAvailableCopies = book.availableCopies;
+    this.initialTotalCopies = book.totalCopies || 0;
+
+    setTimeout(() => {
+      let categoryId = 0;
+      if (book.category) {
+        const categoryName = typeof book.category === 'string' ? book.category : book.category.name;
+        const category = this.categories.find(c => c.name === categoryName);
+        categoryId = category ? category.id : 0;
+        this.categorySearch = category ? category.name : '';
+      }
+
+      let publisherId = 0;
+      if (book.publisher) {
+        const publisherName = typeof book.publisher === 'string' ? book.publisher : book.publisher.name;
+        const publisher = this.publishers.find(p => p.name === publisherName);
+        publisherId = publisher ? publisher.id : 0;
+        this.publisherSearch = publisher ? publisher.name : '';
+      }
+
+      // Set multiple authors
+      this.selectedAuthors = [];
+      if (book.authors && book.authors.length > 0) {
+        book.authors.forEach((author: any) => {
+          const authorName = typeof author === 'string' ? author : author.name;
+          const foundAuthor = this.authors.find(a => a.name === authorName);
+          if (foundAuthor) {
+            this.selectedAuthors.push(foundAuthor);
+          }
+        });
+      }
+      
+      this.bookForm.patchValue({
+        title: book.title || '',
+        isbn: book.isbn || '',
+        description: book.description || '',
+        pages: book.pages || 0,
+        binding: book.binding || '',
+        imageUrl: book.imageUrl || '',
+        shelfLocation: book.shelfLocation || '',
+        totalCopies: this.initialTotalCopies,
+        availableCopies: book.availableCopies || 0,
+        minStock: book.minStock || 0,
+        categoryId: categoryId,
+        publisherId: publisherId
+      });
+
+      this.showBookModal = true;
+      this.cdr.markForCheck();
+    }, 150);
+  }
+
+  submitBook(): void {
+    Object.keys(this.bookForm.controls).forEach(key => {
+      this.bookForm.get(key)?.markAsTouched();
+    });
+
+    if (this.bookForm.invalid) {
+      Swal.fire('Validation Error', 'Please fill all required fields correctly', 'error');
+      return;
+    }
+
+    // Validate authors
+    if (this.selectedAuthors.length === 0) {
+      Swal.fire('Validation Error', 'Please select at least one author', 'error');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const authorIds = this.selectedAuthors.map(a => a.id);
+
+    if (this.selectedBookId) {
+      // EDIT MODE
+      const payloadEdit = {
+        title: this.bookForm.value.title,
+        description: this.bookForm.value.description,
+        imageUrl: this.bookForm.value.imageUrl,
+        categoryId: this.bookForm.value.categoryId,
+        publisherId: this.bookForm.value.publisherId,
+        totalCopies: this.bookForm.value.totalCopies,
+        authorIds: authorIds,
+        isbn: this.bookForm.value.isbn,
+        pages: this.bookForm.value.pages,
+        binding: this.bookForm.value.binding,
+        shelfLocation: this.bookForm.value.shelfLocation,
+        availableCopies: this.bookForm.value.availableCopies
+      };
+
+      this.http.post(
+        `https://primabi.co/api/v1/admin/books/${this.selectedBookId}/update`,
+        payloadEdit,
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire('Success', 'Book updated successfully', 'success');
+            this.loadInventory();
+            this.closeModal();
+          }
+        },
+        error: (err) => {
+          console.error('Update error:', err);
+          Swal.fire('Error', err?.error?.message || 'Failed to update book', 'error');
+        }
+      });
+
+    } else {
+      // ADD MODE - Now includes ALL required fields
+      const payloadAdd = {
+        isbn: this.bookForm.value.isbn,
+        title: this.bookForm.value.title,
+        description: this.bookForm.value.description,
+        pages: this.bookForm.value.pages,
+        binding: this.bookForm.value.binding,
+        imageUrl: this.bookForm.value.imageUrl,
+        shelfLocation: this.bookForm.value.shelfLocation,
+        availableCopies: this.bookForm.value.availableCopies,
+        totalCopies: this.bookForm.value.totalCopies,
+        categoryId: this.bookForm.value.categoryId,
+        publisherId: this.bookForm.value.publisherId,
+        authorIds: authorIds
+      };
+
+      this.http.post(
+        `https://primabi.co/api/v1/admin/books`,
+        payloadAdd,
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire('Success', 'Book added successfully', 'success');
+            this.loadInventory();
+            this.closeModal();
+          }
+        },
+        error: (err) => {
+          console.error('Add error:', err);
+          Swal.fire('Error', err?.error?.message || 'Failed to add book', 'error');
+        }
+      });
+    }
+  }
+
+  closeModal(): void {
+    this.showBookModal = false;
+    this.selectedBookId = null;
+    this.selectedAuthors = [];
+    this.bookForm.reset();
+    this.categorySearch = '';
+    this.authorSearch = '';
+    this.publisherSearch = '';
+  }
+
+  exportBooks(): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.http.get(`https://primabi.co/api/v1/admin/books/export`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:.]/g, '');
+        a.download = `books-${timestamp}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        Swal.fire('Success', 'Books exported successfully', 'success');
+      },
+      error: () => Swal.fire('Error', 'Failed to export books', 'error')
+    });
+  }
+
+  onFileSelected(event: any): void {
+    const file: File = event.target.files[0];
+    if (file) {
+      this.importBooks(file);
+    }
+    event.target.value = '';
+  }
+
+  importBooks(file: File): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    this.http.post(`https://primabi.co/api/v1/admin/books/import`, formData, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: (res: any) => {
+        Swal.fire('Import Result', res.message || 'Import completed', 'success');
+        this.loadInventory();
+      },
+      error: (err) => {
+        console.error('Import error:', err);
+        Swal.fire('Error', err?.error?.message || 'Failed to import books', 'error');
+      }
+    });
+  }
+
+  toggleArchive(book: Book): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const url = book.archived
+      ? `https://primabi.co/api/v1/admin/books/${book.id}/unarchive`
+      : `https://primabi.co/api/v1/admin/books/${book.id}/archive`;
+
+    this.http.post(url, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: (res: any) => {
+        Swal.fire('Success', res.message || (book.archived ? 'Book unarchived' : 'Book archived'), 'success');
+        book.archived = !book.archived;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Archive error:', err);
+        Swal.fire('Error', err?.error?.message || 'Failed to update book status', 'error');
+      }
+    });
+  }
+
+  getErrorMessage(fieldName: string): string {
+    const control = this.bookForm.get(fieldName);
+    if (!control || !control.touched || !control.errors) return '';
+
+    if (control.errors['required']) {
+      return `${this.getFieldLabel(fieldName)} is required`;
+    }
+    if (control.errors['minlength']) {
+      return `${this.getFieldLabel(fieldName)} must be at least ${control.errors['minlength'].requiredLength} characters`;
+    }
+    if (control.errors['min']) {
+      return `${this.getFieldLabel(fieldName)} must be at least ${control.errors['min'].min}`;
+    }
+    if (control.errors['pattern']) {
+      return `${this.getFieldLabel(fieldName)} must be a valid URL`;
+    }
+    return '';
+  }
+
+  private getFieldLabel(fieldName: string): string {
+    const labels: { [key: string]: string } = {
+      title: 'Book Title',
+      isbn: 'ISBN',
+      description: 'Description',
+      pages: 'Pages',
+      binding: 'Binding',
+      imageUrl: 'Image URL',
+      shelfLocation: 'Location',
+      totalCopies: 'Total Copies',
+      availableCopies: 'Available Copies',
+      minStock: 'Min Stock',
+      categoryId: 'Category',
+      publisherId: 'Publisher'
+    };
+    return labels[fieldName] || fieldName;
+  }
+}
