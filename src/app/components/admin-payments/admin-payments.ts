@@ -33,56 +33,67 @@ export class AdminPayments implements OnInit {
   API_URL = 'https://primabi.co/api/v1/admin/payments/users';
   loading = false;
 
-  constructor(private http: HttpClient,private cd: ChangeDetectorRef) {}
+  constructor(private http: HttpClient, private cd: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.loadPayments();
   }
 
-loadPayments() {
-  const token = localStorage.getItem('token');
-
-  if (!token) {
-    Swal.fire('Error', 'No authentication token found in localStorage', 'error');
-    return;
-  }
-
-  this.loading = true;
-
-  const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-
-  this.http.get<any>(this.API_URL, { headers }).subscribe({
-    next: (res) => {
-      this.loading = false;
-
-      if (res?.data) {
-        this.payments = res.data.map((p: any, index: number) => ({
-          id: index + 1,
-          user: p.name || '-',
-          amount: p.currentDeposit || 0,
-          method: 'Cash',
-          status: p.totalRefunds > 0 ? 'Refunded' : 'Success',
-          date: p.lastPayment || '-',
-          refundIssued: p.totalRefunds > 0
-        }));
-
-        // Set total pages based on default pageSize
-        this.totalPages = Math.ceil(this.payments.length / this.pageSize);
-
-        // Show first page according to pageSize
-        this.setPage(1);
-
-        this.cd.detectChanges();
-      } else {
-        Swal.fire('Error', 'Unexpected API response', 'error');
-      }
-    },
-    error: () => {
-      this.loading = false;
-      Swal.fire('Error', 'Failed to load payments', 'error');
-    }
+formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit'
   });
 }
+  loadPayments() {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      Swal.fire('Error', 'No authentication token found in localStorage', 'error');
+      return;
+    }
+
+    this.loading = true;
+
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    this.http.get<any>(this.API_URL, { headers }).subscribe({
+      next: (res) => {
+        this.loading = false;
+
+        if (res?.data) {
+          this.payments = res.data.map((p: any, index: number) => ({
+            id: index + 1,
+            user: p.name || '-',
+            amount: p.currentDeposit || 0,
+            method: 'Cash',
+            status: p.totalRefunds > 0 ? 'Refunded' : 'Success',
+
+            // ✅ Proper Date Handling Here
+            date: p.lastPayment?.date
+              ? this.formatDate(p.lastPayment.date)
+              : '-',
+
+            refundIssued: p.totalRefunds > 0
+          }));
+
+          this.totalPages = Math.ceil(this.payments.length / this.pageSize);
+
+          this.setPage(1);
+
+          this.cd.detectChanges();
+        } else {
+          Swal.fire('Error', 'Unexpected API response', 'error');
+        }
+      },
+      error: () => {
+        this.loading = false;
+        Swal.fire('Error', 'Failed to load payments', 'error');
+      }
+    });
+  }
 
   applyFilter() {
     const term = this.searchTerm.toLowerCase();
