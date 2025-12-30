@@ -1,0 +1,187 @@
+<div class="toolbar">
+  <div class="search">
+    <input
+      type="text"
+      class="input-search"
+      placeholder="Search by category name"
+      [(ngModel)]="searchTerm"
+      (input)="applyFilter()"
+    />
+    <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">✕</button>
+  </div>
+
+  <div class="tabs">
+    <button class="btn btn-primary add-btn" (click)="openAddModal()">+ Add Category</button>
+
+    <label>
+      Show
+      <select class="select-size" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+        <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+      </select>
+      entries
+    </label>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'all'"
+      (click)="setTab('all')"
+    >
+      All
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'active'"
+      (click)="setTab('active')"
+    >
+      Active
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'inactive'"
+      (click)="setTab('inactive')"
+    >
+      Inactive
+    </button>
+  </div>
+</div>
+
+<table class="users-table" *ngIf="paginatedCategories.length > 0; else noResults">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Parent Category</th>
+      <th>Status</th>
+      <th>Created At</th>
+      <th>Updated At</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr *ngFor="let cat of paginatedCategories; let i = index">
+      <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+      <td>
+        <div [style.paddingLeft.px]="getCategoryIndent(cat)" class="category-name-cell">
+          <button 
+            *ngIf="hasSubCategories(cat)" 
+            class="expand-btn"
+            (click)="toggleExpand(cat)"
+            [title]="cat.expanded ? 'Collapse' : 'Expand'"
+          >
+            {{ cat.expanded ? '▼' : '▶' }}
+          </button>
+          <span *ngIf="!hasSubCategories(cat) && cat.level && cat.level > 0" class="spacer"></span>
+          <span class="category-prefix">{{ getCategoryPrefix(cat) }}</span>
+          <span class="category-name">{{ cat.name }}</span>
+        </div>
+      </td>
+      <td>{{ cat.description || '-' }}</td>
+      <td>{{ cat.parentCategoryName || '-' }}</td>
+      <td>
+        <span class="status" [attr.data-status]="cat.isActive ? 'Good' : 'Lost'">
+          {{ cat.isActive ? 'Active' : 'Inactive' }}
+        </span>
+      </td>
+      <td>{{ formatDate(cat.createdAt) }}</td>
+      <td>{{ formatDate(cat.updatedAt) }}</td>
+      <td>
+        <button class="action-btn edit-btn" (click)="openEditModal(cat)" title="Edit">✏️</button>
+        <button class="action-btn delete-btn" (click)="deleteCategory(cat)" title="Delete">🗑️</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<ng-template #noResults>
+  <div class="no-results">No categories found.</div>
+</ng-template>
+
+<div class="pager" *ngIf="totalPages > 1">
+  <button (click)="prev()" [disabled]="currentPage === 1">« Prev</button>
+
+  <button
+    *ngFor="let p of pages"
+    (click)="setPage(p)"
+    [class.active]="p === currentPage"
+  >{{ p }}</button>
+
+  <button (click)="next()" [disabled]="currentPage === totalPages">Next »</button>
+</div>
+
+<!-- Modal -->
+<div class="modal fade show" *ngIf="showModal" style="display:block; background: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header gradient-header">
+        <h5 class="modal-title">{{ isEditMode ? 'Edit Category' : 'Add Category' }}</h5>
+        <button type="button" class="btn btn-close btn-close-white" (click)="closeModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <form [formGroup]="categoryForm" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">Category Name *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              formControlName="name"
+              [class.is-invalid]="isInvalid('name')"
+              placeholder="Enter category name"
+            />
+            <div class="invalid-feedback" *ngIf="isInvalid('name')">
+              {{ getErrorMessage('name') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea 
+              class="form-control" 
+              formControlName="description"
+              rows="3"
+              placeholder="Enter category description (optional)"
+              [class.is-invalid]="isInvalid('description')"
+            ></textarea>
+            <div class="invalid-feedback" *ngIf="isInvalid('description')">
+              {{ getErrorMessage('description') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Parent Category</label>
+            <select class="form-select" formControlName="parentCategoryId">
+              <option [value]="null">None (Root Category)</option>
+              <option *ngFor="let parent of getAvailableParents()" [value]="parent.id">
+                {{ parent.name }}
+              </option>
+            </select>
+            <small class="form-hint">Select a parent category to create a subcategory</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label checkbox-label">
+              <input 
+                type="checkbox" 
+                formControlName="isActive"
+              />
+              <span>Active</span>
+            </label>
+            <small class="form-hint">Inactive categories won't be shown to users</small>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-danger" (click)="closeModal()">Cancel</button>
+        <button class="btn btn-primary" (click)="saveCategory()" [disabled]="categoryForm.invalid">
+          {{ isEditMode ? 'Update' : 'Create' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

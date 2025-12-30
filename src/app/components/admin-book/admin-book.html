@@ -1,0 +1,183 @@
+<!-- ---------------- Toolbar ---------------- -->
+<div class="toolbar">
+  <div class="search">
+    <input
+      type="text"
+      placeholder="Search orders..."
+      class="input-search"
+      [(ngModel)]="searchTerm"
+      (input)="setPage(1)"
+    />
+    <button class="clear-btn" *ngIf="searchTerm" (click)="clearSearch()">✕</button>
+  </div>
+
+  <div class="right" style="display: flex; align-items: center; gap: 12px;">
+    <label>
+      Status:
+      <select class="select-size" [(ngModel)]="selectedStatus" (change)="onStatusChange()">
+        <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+      </select>
+    </label>
+
+    <label>
+      Show
+      <select class="select-size" [(ngModel)]="pageSize" (change)="setPage(1)">
+        <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+      </select>
+      entries
+    </label>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading">Loading orders...</div>
+
+<table class="users-table" *ngIf="!loading && pagedOrders.length">
+  <thead>
+    <tr>
+      <th style="width: 50px;"></th>
+      <th>Order #</th>
+      <th>User</th>
+      <th>Status</th>
+      <th>Books</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let order of pagedOrders">
+      <!-- Main Order Row -->
+      <tr>
+        <td>
+          <button 
+            mat-icon-button 
+            (click)="toggleOrder(order.orderId)"
+            *ngIf="order.books && order.books.length > 0"
+            class="expand-btn">
+            <mat-icon>{{ isOrderExpanded(order.orderId) ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </td>
+        <td>{{ order.orderNumber }}</td>
+        <td>{{ order.user.name }}</td>
+        <td class="status" [attr.data-status]="order.status">{{ order.status }}</td>
+        <td>{{ order.totalBooks }}</td>
+        
+        <!-- ✅ ACTION BUTTONS -->
+        <td class="actions">
+          <!-- Pending: Approve + Reject -->
+          <ng-container *ngIf="order.status === 'Pending'">
+            <button mat-icon-button matTooltip="Approve" (click)="approveOrder(order.orderId)"
+              class="action-btn approve-btn" color="primary">
+              <mat-icon fontIcon="check_circle"></mat-icon>
+            </button>
+
+            <button mat-icon-button matTooltip="Reject" (click)="rejectOrder(order.orderId)"
+              class="action-btn reject-btn" color="warn">
+              <mat-icon fontIcon="cancel"></mat-icon>
+            </button>
+          </ng-container>
+
+          <!-- Approved / Returned / Overdue -->
+          <ng-container *ngIf="['Approved','Returned','Overdue'].includes(order.status)">
+            <button mat-icon-button matTooltip="Deliver" (click)="deliverOrder(order.orderId)"
+              class="action-btn deliver-btn">
+              <mat-icon fontIcon="local_shipping"></mat-icon>
+            </button>
+          </ng-container>
+
+          <!-- Delivered / PartiallyReturned: Show in expanded view -->
+          <ng-container *ngIf="order.status === 'Delivered' || order.status === 'PartiallyReturned'">
+            <span style="  border-radius: 50%;
+  transition: all 0.2s ease;
+  padding: 7px;
+  background: transparent;
+  border: none;
+  cursor: pointer;">Expand to return books</span>
+          </ng-container>
+
+          <button
+            *ngIf="order.status === 'Completed'"
+            mat-icon-button
+            class="action-btn completed"
+            matTooltip="Completed"
+            disabled>
+            <mat-icon color="primary">check_circle</mat-icon>
+          </button>
+
+          <!-- Rejected: Placeholder -->
+          <ng-container *ngIf="order.status === 'Rejected'">
+            <span class="empty-placeholder"></span>
+          </ng-container>
+        </td>
+      </tr>
+
+      <!-- Expanded Books List Row -->
+      <tr *ngIf="isOrderExpanded(order.orderId)" class="expanded-row">
+        <td colspan="6">
+          <div class="books-container">
+            <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px;">Books in this order:</h4>
+            <table class="books-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">Image</th>
+                  <th>Title</th>
+                  <th>ISBN</th>
+                  <th>Authors</th>
+                  <th>Status</th>
+                  <th>Expected Return</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let book of order.books">
+                  <td>
+                    <img [src]="book.imageUrl" [alt]="book.title" 
+                      style="width: 50px; height: 70px; object-fit: cover; border-radius: 4px;" />
+                  </td>
+                  <td style="font-weight: 600;">{{ book.title }}</td>
+                  <td style="font-size: 12px; color: #6b7280;">{{ book.isbn }}</td>
+                  <td style="font-size: 12px;">{{ book.authors.join(', ') }}</td>
+                  <td>
+                    <span class="book-status" [attr.data-status]="book.status">{{ book.status }}</span>
+                  </td>
+                  <td style="font-size: 12px;">
+                    {{ book.expectedReturnDate ? (book.expectedReturnDate | date: 'MMM d, y') : '-' }}
+                    <span *ngIf="book.isOverdue" style="color: #ef4444; font-weight: 600;">
+                      ({{ book.daysOverdue }} days overdue)
+                    </span>
+                  </td>
+                  <td>
+                    <!-- <button 
+                      *ngIf="book.status === 'Delivered'"
+                      mat-icon-button 
+                      matTooltip="Return Book" 
+                      (click)="returnOrder(order, book)"
+                      class="action-btn return-btn">
+                      <mat-icon fontIcon="undo"></mat-icon>
+                    </button> -->
+                    <!-- <span *ngIf="book.status === 'Returned'" style="color: #16a34a; font-size: 12px; font-weight: 600;">
+                      ✓ Returned
+                    </span> -->
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </ng-container>
+  </tbody>
+</table>
+
+<div *ngIf="!loading && !pagedOrders.length" class="no-results">
+  No orders found.
+</div>
+
+<div class="pager" *ngIf="totalPages > 1">
+  <button (click)="prev()">Prev</button>
+  <button *ngFor="let page of pages" (click)="setPage(page)" [class.active]="page === currentPage">
+    {{ page }}
+  </button>
+  <button (click)="next()">Next</button>
+</div>
+
+
+

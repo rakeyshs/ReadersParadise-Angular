@@ -1,0 +1,106 @@
+<div class="users-root">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="left">
+      <div class="search">
+        <input
+          class="input-search"
+          type="text"
+          placeholder="Search user, book or status"
+          [(ngModel)]="searchTerm"
+          (input)="applyFilter()"
+        />
+        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">✕</button>
+      </div>
+
+      <select
+        class="select-size"
+        [(ngModel)]="selectedCategory"
+        (change)="loadBooksByCategory(selectedCategory)"
+      >
+        <option [ngValue]="null">All Categories</option>
+        <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option>
+      </select>
+
+      <button class="btn-info" (click)="loadMostRentedBooks()">🔥 Most Rented</button>
+      <button class="btn-red" (click)="clearFilters()">✖ Clear Filters</button>
+    </div>
+
+    <div class="right">
+      <label>
+        Show
+        <select class="select-size" [(ngModel)]="pageSize" (change)="applyFilter()">
+          <option *ngFor="let s of pageSizes" [value]="s">{{ s }}</option>
+        </select>
+        entries
+      </label>
+    </div>
+  </div>
+
+  <!-- View mode title -->
+  <div class="view-mode">
+    <h3 *ngIf="viewMode === 'all'">📚 All Books</h3>
+    <h3 *ngIf="viewMode === 'category'">📂 Category Books</h3>
+    <h3 *ngIf="viewMode === 'mostRented'">🔥 Most Rented Books</h3>
+    <h3 *ngIf="viewMode === 'bookHistory'">📘 Rental History</h3>
+  </div>
+
+  <!-- Table -->
+  <table class="users-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>User</th>
+        <th>Book</th>
+        <th>Issue Date</th>
+        <th>Return Date</th>
+        <th>Status</th>
+        <th *ngIf="viewMode !== 'bookHistory'">Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let b of filteredBooks; let i = index">
+        <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+        <td>{{ b.user }}</td>
+        <td>{{ b.book }}</td>
+        <td>{{ b.issueDate }}</td>
+        <td>{{ b.returnDate || 'Not Returned' }}</td>
+        <td>
+          <span class="status" [attr.data-status]="b.status">{{ b.status }}</span>
+        </td>
+
+        <td *ngIf="viewMode !== 'bookHistory'">
+          <!-- call only if bookId exists and is number -->
+          <button
+            class="btn-view"
+            *ngIf="b.bookId !== null && b.bookId !== undefined"
+            (click)="loadBookRentalHistory(b.bookId!)"
+          >
+            View History
+          </button>
+        </td>
+      </tr>
+
+      <tr *ngIf="filteredBooks.length === 0">
+        <td colspan="7" class="no-results">No records found</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div class="pager" *ngIf="totalPages > 1">
+    <button (click)="prev()" [disabled]="currentPage === 1">Prev</button>
+
+    <button
+      *ngFor="let p of pages"
+      [class.active]="p === currentPage"
+      (click)="setPage(p)"
+    >
+      {{ p }}
+    </button>
+
+    <button (click)="next()" [disabled]="currentPage === totalPages">Next</button>
+  </div>
+</div>

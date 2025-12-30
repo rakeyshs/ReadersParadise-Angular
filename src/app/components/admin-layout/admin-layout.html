@@ -1,0 +1,174 @@
+<div class="admin-root">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-info">
+        <!-- ✅ Centered Logo -->
+        <img
+          src="assets/ic_launcher-web.png"
+          alt="Library Logo"
+          class="brand-logo"
+           routerLink="/admin"
+        />
+
+        <!-- ✅ Brand Name and Subtitle -->
+        <div class="brand-title">Reader's Paradise</div>
+        <div class="brand-sub">Library Portal</div>
+
+        <!-- ✅ Sidebar Menu -->
+<nav class="menu single">
+
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/dashboard"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">📊</span>
+    <span class="label">Dashboard Overview</span>
+  </a>
+
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/orders"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">👥</span>
+    <span class="label">Users</span>
+  </a>
+
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/books"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">📚</span>
+    <span class="label">Book Orders</span>
+  </a>
+
+    <!-- ✅ NEW MENU: Books History -->
+  <!-- <a
+    class="menu-item admin-only"
+    routerLink="/admin/history"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">📖</span>
+    <span class="label">Books History</span>
+  </a> -->
+
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/inventory"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">📦</span>
+    <span class="label">Inventory Management</span>
+  </a>
+
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/pricing"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">💰</span>
+    <span class="label">Pricing & Plans</span>
+  </a>
+
+
+    <a
+    class="menu-item admin-only"
+    routerLink="/admin/category"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">💰</span>
+    <span class="label">Category</span>
+  </a>
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/returns"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">🔄</span>
+    <span class="label">Returns Management</span>
+  </a>
+
+  <a
+    class="menu-item admin-only"
+    routerLink="/admin/payments"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: true }"
+  >
+    <span class="icon">💳</span>
+    <span class="label">Payment & Financial</span>
+  </a>
+
+</nav>
+
+      </div>
+    </div>
+  </aside>
+
+  <!-- ✅ Main Area -->
+  <div class="main-area">
+    <!-- ✅ Header / Topbar -->
+    <header class="topbar">
+<div class="page-title">{{ pageTitle }}</div>
+      <div class="top-right">
+        <div class="user">
+          <div class="avatar">
+            {{ userName ? userName.charAt(0).toUpperCase() : 'A' }}
+          </div>
+          <div class="user-info">
+            <div class="name">{{ userName || 'Admin User' }}</div>
+          </div>
+
+          <!-- ✅ Logout Button -->
+          <button class="btn-logout" (click)="logout()">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M16 17l5-5-5-5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 12H9"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M13 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h7"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ✅ Page Content -->
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

@@ -1,0 +1,121 @@
+<div class="users-root">
+  <!-- ---------------- Toolbar ---------------- -->
+  <div class="toolbar">
+    <!-- 🔍 Left: Search box -->
+    <div class="left">
+      <div class="search">
+   
+        <input
+          class="input-search"
+          type="text"
+          placeholder="Search by title, ISBN, or author"
+          [(ngModel)]="searchTerm"
+          (input)="setPage(1)"
+        />
+
+        <button *ngIf="searchTerm" class="clear-btn" (click)="clearSearch()">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- ⚙️ Right: Page size + Refresh -->
+    <div class="right">
+      <label>
+        Show
+        <select
+          class="select-size"
+          [(ngModel)]="pageSize"
+          (change)="setPage(1)"
+        >
+          <option *ngFor="let s of [10, 20, 50, 100]" [value]="s">
+            {{ s }}
+          </option>
+        </select>
+        entries
+      </label>
+
+      <button class="btn btn-secondary" (click)="loadBooks()" [disabled]="loading">
+        {{ loading ? 'Loading...' : 'Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ---------------- Table ---------------- -->
+  <table class="users-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cover</th>
+        <th>Title</th>
+        <th>Authors</th>
+        <th>ISBN</th>
+        <th>Pages</th>
+        <th>Binding</th>
+        <th>Category</th>
+        <th>Publisher</th>
+        <th>Available Copies</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <!-- 🌀 Loading row -->
+      <tr *ngIf="loading">
+        <td colspan="10" class="no-results">Loading books...</td>
+      </tr>
+
+      <!-- 📚 Data rows -->
+      <ng-container *ngIf="!loading">
+        <tr *ngFor="let b of pagedBooks; let i = index">
+          <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+          <td>
+            <img
+              [src]="b.imageUrl || 'https://via.placeholder.com/50x70?text=No+Image'"
+              alt="{{ b.title }}"
+              width="50"
+              height="70"
+              class="book-cover"
+            />
+          </td>
+          <td>{{ b.title }}</td>
+          <td>
+            <span class="author" *ngFor="let a of b.authors">
+              {{ a }}
+            </span>
+          </td>
+          <td>{{ b.isbn }}</td>
+          <td>{{ b.pages }}</td>
+          <td>{{ b.binding }}</td>
+          <td>{{ b.category }}</td>
+          <td>{{ b.publisher }}</td>
+          <td>
+            <span
+              [class.available]="b.isAvailable"
+              [class.unavailable]="!b.isAvailable"
+            >
+              {{ b.availableCopies }}/{{ b.totalCopies }}
+            </span>
+          </td>
+        </tr>
+
+        <!-- ❌ No results -->
+        <tr *ngIf="pagedBooks.length === 0 && !loading">
+          <td colspan="10" class="no-results">No books found</td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+
+  <!-- ---------------- Pagination ---------------- -->
+  <div class="pager" *ngIf="!loading && totalPages > 1">
+    <button (click)="prev()" [disabled]="currentPage === 1">Prev</button>
+
+    <ng-container *ngFor="let p of pages">
+      <button [class.active]="p === currentPage" (click)="setPage(p)">
+        {{ p }}
+      </button>
+    </ng-container>
+
+    <button (click)="next()" [disabled]="currentPage === totalPages">Next</button>
+  </div>
+</div>

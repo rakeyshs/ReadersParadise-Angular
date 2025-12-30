@@ -1,0 +1,359 @@
+:host {
+  display: block;
+  padding: 8px;
+}
+
+/* ---------------- Toolbar ---------------- */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  padding: 4px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(11, 63, 102, 0.06);
+  width: 320px;
+  box-shadow: 0 4px 12px rgba(11, 63, 102, 0.03);
+}
+
+.input-search {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: #111;
+}
+
+.clear-btn {
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.select-size {
+  margin-left: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(11, 63, 102, 0.06);
+  background: white;
+}
+
+.btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* ---------------- Table ---------------- */
+.users-table th,
+.users-table td {
+  padding: 4px 6px;
+  border: 1px solid #eef3f8;
+  text-align: left;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.users-table th {
+  background-color: #f4f6f9;
+  font-weight: 600;
+}
+
+.no-results {
+  text-align: center;
+  padding: 14px;
+  color: #6b7280;
+}
+
+/* ---------------- Pagination ---------------- */
+.pager {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.pager button {
+  min-width: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(11, 63, 102, 0.06);
+  background: white;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.pager button:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.pager button.active {
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #fff;
+}
+
+/* ---------------- Status Badges ---------------- */
+.status[data-status="Pending"] { color: #facc15; font-weight: 600; }
+.status[data-status="Approved"] { color: #22c55e; font-weight: 600; }
+.status[data-status="Rejected"] { color: #ef4444; font-weight: 600; }
+.status[data-status="Delivered"] { color: #3b82f6; font-weight: 600; }
+.status[data-status="Returned"] { color: #fbbf24; font-weight: 600; }
+.status[data-status="Overdue"] { color: #f97316; font-weight: 600; }
+.status[data-status="PartiallyReturned"] { color: #8b5cf6; font-weight: 600; }
+.status[data-status="Completed"] { color: #059669; font-weight: 600; }
+
+/* ---------------- Action Buttons ---------------- */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.completed-icon {
+  color: #059669;
+  font-size: 22px;
+}
+
+.action-btn {
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.action-btn:hover {
+  transform: scale(1.15);
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.approve-btn mat-icon { color: #16a34a; }
+.reject-btn mat-icon { color: #dc2626; }
+.deliver-btn mat-icon { color: #2563eb; }
+.return-btn mat-icon { color: #ca8a04; }
+.overdue-btn mat-icon { color: #ea580c; }
+
+.empty-placeholder {
+  display: inline-block;
+  width: 100%;
+  height: 36px;
+}
+
+/* ---------------- Tooltip ---------------- */
+::ng-deep .mat-tooltip {
+  font-size: 12px !important;
+  background: #333 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  padding: 4px 6px !important;
+  letter-spacing: 0.3px;
+  text-transform: none;
+}
+
+.btn-overdue {
+  background: #ff9800;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.btn-overdue:hover {
+  background: #fb8c00;
+}
+
+/* ---------------- Expanded Books View ---------------- */
+.expand-btn {
+  padding: 4px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+}
+
+.expanded-row {
+  background-color: #f9fafb;
+}
+
+.expanded-row > td {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.books-container {
+  padding: 12px 16px 16px 16px;
+  background: #ffffff;
+  margin: 0;
+}
+
+.books-header {
+  margin: 0 0 10px 0;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.books-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.books-table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  color: #374151;
+}
+
+.books-table td {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  vertical-align: middle;
+  color: #111827;
+}
+
+/* Column widths for books table */
+.book-img-col {
+  width: 80px;
+  text-align: center;
+}
+
+.book-title-col {
+  width: auto;
+  min-width: 200px;
+  font-weight: 600;
+}
+
+.book-isbn-col {
+  width: 140px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.book-authors-col {
+  width: 180px;
+  font-size: 12px;
+}
+
+.book-status-col {
+  width: 120px;
+}
+
+.book-return-col {
+  width: 150px;
+  font-size: 12px;
+}
+
+.book-actions-col {
+  width: 100px;
+  text-align: center;
+}
+
+.book-image {
+  width: 50px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.book-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.book-status[data-status="Delivered"] {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.book-status[data-status="Returned"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.overdue-text {
+  display: block;
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.returned-text {
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------------- Loading ---------------- */
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.single-column-form .form-group {
+  margin-bottom: 14px;
+}
+
+.single-column-form .form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
