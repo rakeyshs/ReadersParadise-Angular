@@ -7,7 +7,7 @@
 /* ---------------- Toolbar ---------------- */
 .toolbar {
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -44,7 +44,7 @@
 
 .select-size {
   margin-left: 8px;
-  padding: 6px 10px;
+  padding: 12px 10px;
   border-radius: 8px;
   border: 1px solid rgba(11, 63, 102, 0.06);
   background: #fff;
