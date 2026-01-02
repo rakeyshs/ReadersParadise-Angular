@@ -66,7 +66,7 @@
       <td>{{ r.calculatedLateFee || 0 }}</td>
 
       <td *ngIf="activeTab==='pending'">
-        <button class="action-btn return-btn" (click)="openReturnModal(r)">🔄</button>
+        <button class="action-btn return-btn" title="Process Return" (click)="openReturnModal(r)">🔄</button>
       </td>
     </tr>
   </tbody>

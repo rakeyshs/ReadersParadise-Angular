@@ -1,3 +1,23 @@
+<!-- Add CSS styles for Order Date column -->
+<style>
+.order-date .date-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-date .date {
+  font-weight: 600;
+  font-size: 13px;
+  color: #111827;
+}
+
+.order-date .time {
+  font-size: 11px;
+  color: #6b7280;
+}
+</style>
+
 <!-- ---------------- Toolbar ---------------- -->
 <div class="toolbar">
   <div class="search">
@@ -37,6 +57,7 @@
       <th style="width: 50px;"></th>
       <th>Order #</th>
       <th>User</th>
+      <th>Order Date</th>
       <th>Status</th>
       <th>Books</th>
       <th>Actions</th>
@@ -57,6 +78,12 @@
         </td>
         <td>{{ order.orderNumber }}</td>
         <td>{{ order.user.name }}</td>
+        <td class="order-date">
+          <div class="date-time">
+            <span class="date">{{ order.orderDate | date: 'MMM d, y' }}, {{ order.orderDate | date: 'h:mm a' }}</span>
+            <!-- <span class="time"></span> -->
+          </div>
+        </td>
         <td class="status" [attr.data-status]="order.status">{{ order.status }}</td>
         <td>{{ order.totalBooks }}</td>
         
@@ -85,12 +112,7 @@
 
           <!-- Delivered / PartiallyReturned: Show in expanded view -->
           <ng-container *ngIf="order.status === 'Delivered' || order.status === 'PartiallyReturned'">
-            <span style="  border-radius: 50%;
-  transition: all 0.2s ease;
-  padding: 7px;
-  background: transparent;
-  border: none;
-  cursor: pointer;">Expand to return books</span>
+            <span style="border-radius: 50%; transition: all 0.2s ease; padding: 7px; background: transparent; border: none; cursor: pointer;">Expand to return books</span>
           </ng-container>
 
           <button
@@ -111,7 +133,7 @@
 
       <!-- Expanded Books List Row -->
       <tr *ngIf="isOrderExpanded(order.orderId)" class="expanded-row">
-        <td colspan="6">
+        <td colspan="7">
           <div class="books-container">
             <h4 style="margin: 0 0 12px 0; color: #374151; font-size: 14px;">Books in this order:</h4>
             <table class="books-table">
@@ -145,17 +167,7 @@
                     </span>
                   </td>
                   <td>
-                    <!-- <button 
-                      *ngIf="book.status === 'Delivered'"
-                      mat-icon-button 
-                      matTooltip="Return Book" 
-                      (click)="returnOrder(order, book)"
-                      class="action-btn return-btn">
-                      <mat-icon fontIcon="undo"></mat-icon>
-                    </button> -->
-                    <!-- <span *ngIf="book.status === 'Returned'" style="color: #16a34a; font-size: 12px; font-weight: 600;">
-                      ✓ Returned
-                    </span> -->
+                    <!-- Action buttons for books can be added here if needed -->
                   </td>
                 </tr>
               </tbody>
@@ -178,6 +190,3 @@
   </button>
   <button (click)="next()">Next</button>
 </div>
-
-
-

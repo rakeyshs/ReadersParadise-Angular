@@ -96,6 +96,30 @@
   color: #6b7280;
 }
 
+/* ---------------- Order Date Column ---------------- */
+.order-date {
+  min-width: 120px;
+}
+
+.order-date .date-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-date .date {
+  font-weight: 600;
+  font-size: 13px;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.order-date .time {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
 /* ---------------- Pagination ---------------- */
 .pager {
   display: flex;
