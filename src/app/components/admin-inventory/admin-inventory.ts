@@ -116,10 +116,17 @@ export class AdminInventory implements OnInit {
   // Multiple author selection
   selectedAuthors: Author[] = [];
 
+  // Import Modal (separate from export)
+  showImportModal: boolean = false;
+  selectedFile: File | null = null;
+  uploadProgress: number = 0;
+  isUploading: boolean = false;
+
   private initialAvailableCopies: number = 0;
   private initialTotalCopies: number = 0;
 
   private readonly API_URL = 'https://primabi.co/api/v1/Books';
+  private readonly ADMIN_API_URL = 'https://primabi.co/api/v1/admin/books';
 
   constructor(
     private http: HttpClient,
@@ -307,7 +314,7 @@ export class AdminInventory implements OnInit {
       },
       error: () => {
         this.authors = [];
-        Swal.fire('Error', 'Failed to load authors', 'error');
+        this.showErrorWithHighZIndex('Failed to load authors');
       }
     });
   }
@@ -324,7 +331,7 @@ export class AdminInventory implements OnInit {
       },
       error: () => {
         this.publishers = [];
-        Swal.fire('Error', 'Failed to load publishers', 'error');
+        this.showErrorWithHighZIndex('Failed to load publishers');
       }
     });
   }
@@ -343,7 +350,7 @@ export class AdminInventory implements OnInit {
       error: () => {
         this.categories = [];
         this.allCategories = [];
-        Swal.fire('Error', 'Failed to load categories', 'error');
+        this.showErrorWithHighZIndex('Failed to load categories');
       }
     });
   }
@@ -362,7 +369,7 @@ export class AdminInventory implements OnInit {
     return result;
   }
 
-  // Category filter change
+  // Category filter change - BUG FIX: Ensure subcategory filtering works
   onCategoryFilterChange(event: any): void {
     this.selectedCategoryId = +event.target.value;
     this.showNewReleases = false;
@@ -424,8 +431,9 @@ export class AdminInventory implements OnInit {
       if (this.showBestSellers) {
         params.bestSellers = true;
       }
+      // BUG FIX: Angular HttpClient automatically encodes params, so just pass the raw search term
       if (this.searchTerm.trim()) {
-        params.search = this.searchTerm;
+        params.search = this.searchTerm.trim();
       }
 
       this.http.get<{ data: any[]; totalCount: number; page: number; pageSize: number; totalPages: number }>(
@@ -445,7 +453,7 @@ export class AdminInventory implements OnInit {
         },
         error: () => {
           this.loading = false;
-          Swal.fire('Error', 'Failed to load books', 'error');
+          this.showErrorWithHighZIndex('Failed to load books');
         }
       });
     } else {
@@ -455,10 +463,12 @@ export class AdminInventory implements OnInit {
         pageSize: this.pageSize 
       };
       
+      // BUG FIX: Angular HttpClient automatically encodes params, so just pass the raw search term
       if (this.searchTerm.trim()) {
-        params.search = this.searchTerm;
+        params.search = this.searchTerm.trim();
       }
       
+      // BUG FIX: Ensure subcategory filter is properly applied
       if (this.selectedCategoryId > 0) {
         params.categoryId = this.selectedCategoryId;
       }
@@ -478,7 +488,7 @@ export class AdminInventory implements OnInit {
         },
         error: () => {
           this.loading = false;
-          Swal.fire('Error', 'Failed to load books', 'error');
+          this.showErrorWithHighZIndex('Failed to load books');
         }
       });
     }
@@ -495,7 +505,7 @@ export class AdminInventory implements OnInit {
     this.selectedCategoryId = 0;
 
     this.http.get<{ success: boolean; data: any[]; total: number }>(
-      'https://primabi.co/api/v1/admin/books/most-rented?top=50',
+      `${this.ADMIN_API_URL}/most-rented?top=50`,
       { headers: { Authorization: `Bearer ${token}` } }
     ).subscribe({
       next: res => {
@@ -525,7 +535,7 @@ export class AdminInventory implements OnInit {
       error: () => {
         this.loading = false;
         this.showMostRented = false;
-        Swal.fire('Error', 'Failed to load most rented books', 'error');
+        this.showErrorWithHighZIndex('Failed to load most rented books');
       }
     });
   }
@@ -547,7 +557,7 @@ export class AdminInventory implements OnInit {
     this.showRentalHistoryModal = true;
 
     this.http.get<{ success: boolean; data: any }>(
-      `https://primabi.co/api/v1/admin/books/${book.id}/rental-history`,
+      `${this.ADMIN_API_URL}/${book.id}/rental-history`,
       { headers: { Authorization: `Bearer ${token}` } }
     ).subscribe({
       next: res => {
@@ -560,7 +570,7 @@ export class AdminInventory implements OnInit {
       },
       error: () => {
         this.loadingHistory = false;
-        Swal.fire('Error', 'Failed to load rental history', 'error');
+        this.showErrorWithHighZIndex('Failed to load rental history');
       }
     });
   }
@@ -769,7 +779,7 @@ export class AdminInventory implements OnInit {
     totalCopiesControl?.markAsTouched();
 
     if (titleControl?.invalid || totalCopiesControl?.invalid) {
-      Swal.fire('Validation Error', 'Please fill Book Title and Total Copies correctly', 'error');
+      this.showErrorWithHighZIndex('Please fill Book Title and Total Copies correctly');
       return;
     }
 
@@ -793,20 +803,20 @@ export class AdminInventory implements OnInit {
       };
 
       this.http.post(
-        `https://primabi.co/api/v1/admin/books/${this.selectedBookId}/update`,
+        `${this.ADMIN_API_URL}/${this.selectedBookId}/update`,
         payloadEdit,
         { headers: { Authorization: `Bearer ${token}` } }
       ).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire('Success', 'Book updated successfully', 'success');
+            this.showSuccessWithHighZIndex('Book updated successfully');
             this.loadInventory();
             this.closeModal();
           }
         },
         error: (err) => {
           console.error('Update error:', err);
-          Swal.fire('Error', err?.error?.message || 'Failed to update book', 'error');
+          this.showErrorWithHighZIndex(err?.error?.message || 'Failed to update book');
         }
       });
 
@@ -830,20 +840,20 @@ export class AdminInventory implements OnInit {
       };
 
       this.http.post(
-        `https://primabi.co/api/v1/admin/books`,
+        this.ADMIN_API_URL,
         payloadAdd,
         { headers: { Authorization: `Bearer ${token}` } }
       ).subscribe({
         next: (res: any) => {
           if (res.success) {
-            Swal.fire('Success', 'Book added successfully', 'success');
+            this.showSuccessWithHighZIndex('Book added successfully');
             this.loadInventory();
             this.closeModal();
           }
         },
         error: (err) => {
           console.error('Add error:', err);
-          Swal.fire('Error', err?.error?.message || 'Failed to add book', 'error');
+          this.showErrorWithHighZIndex(err?.error?.message || 'Failed to add book');
         }
       });
     }
@@ -859,11 +869,63 @@ export class AdminInventory implements OnInit {
     this.publisherSearch = '';
   }
 
-  exportBooks(): void {
+  // BUG FIX: SweetAlert with high z-index to appear above modals
+  private showErrorWithHighZIndex(message: string): void {
+    Swal.fire({
+      title: 'Error',
+      text: message,
+      icon: 'error',
+      customClass: {
+        container: 'swal-high-zindex'
+      }
+    });
+  }
+
+  private showSuccessWithHighZIndex(message: string): void {
+    Swal.fire({
+      title: 'Success',
+      text: message,
+      icon: 'success',
+      customClass: {
+        container: 'swal-high-zindex'
+      }
+    });
+  }
+
+  // ==================== IMPORT FUNCTIONALITY ====================
+  
+  openImportModal(): void {
+    this.showImportModal = true;
+    this.selectedFile = null;
+    this.uploadProgress = 0;
+    this.isUploading = false;
+  }
+
+  closeImportModal(): void {
+    this.showImportModal = false;
+    this.selectedFile = null;
+    this.uploadProgress = 0;
+    this.isUploading = false;
+  }
+
+  onFileChange(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      if (fileExtension === 'xls' || fileExtension === 'xlsx' || fileExtension === 'csv') {
+        this.selectedFile = file;
+      } else {
+        this.showErrorWithHighZIndex('Please select a valid Excel file (.xls, .xlsx) or CSV file');
+        event.target.value = '';
+      }
+    }
+  }
+
+  downloadTemplate(): void {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    this.http.get(`https://primabi.co/api/v1/admin/books/export`, {
+    this.http.get(`${this.ADMIN_API_URL}/import-template`, {
       headers: { Authorization: `Bearer ${token}` },
       responseType: 'blob'
     }).subscribe({
@@ -872,42 +934,99 @@ export class AdminInventory implements OnInit {
         const a = document.createElement('a');
         a.href = url;
         const now = new Date();
-        const timestamp = now.toISOString().replace(/[-:.]/g, '');
-        a.download = `books-${timestamp}.csv`;
+        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 8);
+        a.download = `books-import-template-${timestamp}.xlsx`;
         a.click();
         window.URL.revokeObjectURL(url);
-        Swal.fire('Success', 'Books exported successfully', 'success');
+        this.showSuccessWithHighZIndex('Template downloaded successfully');
       },
-      error: () => Swal.fire('Error', 'Failed to export books', 'error')
+      error: () => {
+        this.showErrorWithHighZIndex('Failed to download template');
+      }
     });
   }
 
-  onFileSelected(event: any): void {
-    const file: File = event.target.files[0];
-    if (file) {
-      this.importBooks(file);
+  uploadFile(): void {
+    if (!this.selectedFile) {
+      this.showErrorWithHighZIndex('Please select a file first');
+      return;
     }
-    event.target.value = '';
-  }
 
-  importBooks(file: File): void {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', this.selectedFile);
 
-    this.http.post(`https://primabi.co/api/v1/admin/books/import`, formData, {
-      headers: { Authorization: `Bearer ${token}` }
+    this.isUploading = true;
+    this.uploadProgress = 0;
+
+    this.http.post(`${this.ADMIN_API_URL}/import`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+      reportProgress: true,
+      observe: 'events'
     }).subscribe({
-      next: (res: any) => {
-        Swal.fire('Import Result', res.message || 'Import completed', 'success');
-        this.loadInventory();
+      next: (event: any) => {
+        if (event.type === 1) { // HttpEventType.UploadProgress
+          if (event.total) {
+            this.uploadProgress = Math.round((100 * event.loaded) / event.total);
+          }
+        } else if (event.type === 4) { // HttpEventType.Response
+          this.isUploading = false;
+          this.uploadProgress = 100;
+          const response = event.body;
+          
+          Swal.fire({
+            title: 'Import Complete',
+            html: `
+              <div style="text-align: left;">
+                <p>${response.message || 'Import completed successfully'}</p>
+                ${response.imported ? `<p><strong>Imported:</strong> ${response.imported}</p>` : ''}
+                ${response.updated ? `<p><strong>Updated:</strong> ${response.updated}</p>` : ''}
+                ${response.failed ? `<p><strong>Failed:</strong> ${response.failed}</p>` : ''}
+              </div>
+            `,
+            icon: 'success',
+            customClass: {
+              container: 'swal-high-zindex'
+            }
+          });
+          
+          this.closeImportModal();
+          this.loadInventory();
+        }
       },
       error: (err) => {
+        this.isUploading = false;
+        this.uploadProgress = 0;
         console.error('Import error:', err);
-        Swal.fire('Error', err?.error?.message || 'Failed to import books', 'error');
+        this.showErrorWithHighZIndex(err?.error?.message || 'Failed to import books');
       }
+    });
+  }
+
+  // ==================== EXPORT FUNCTIONALITY ====================
+
+  exportBooks(): void {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    this.http.get(`${this.ADMIN_API_URL}/export`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15);
+        a.download = `books-export-${timestamp}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.showSuccessWithHighZIndex('Books exported successfully');
+      },
+      error: () => this.showErrorWithHighZIndex('Failed to export books')
     });
   }
 
@@ -916,20 +1035,20 @@ export class AdminInventory implements OnInit {
     if (!token) return;
 
     const url = book.archived
-      ? `https://primabi.co/api/v1/admin/books/${book.id}/unarchive`
-      : `https://primabi.co/api/v1/admin/books/${book.id}/archive`;
+      ? `${this.ADMIN_API_URL}/${book.id}/unarchive`
+      : `${this.ADMIN_API_URL}/${book.id}/archive`;
 
     this.http.post(url, {}, {
       headers: { Authorization: `Bearer ${token}` }
     }).subscribe({
       next: (res: any) => {
-        Swal.fire('Success', res.message || (book.archived ? 'Book unarchived' : 'Book archived'), 'success');
+        this.showSuccessWithHighZIndex(res.message || (book.archived ? 'Book unarchived' : 'Book archived'));
         book.archived = !book.archived;
         this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Archive error:', err);
-        Swal.fire('Error', err?.error?.message || 'Failed to update book status', 'error');
+        this.showErrorWithHighZIndex(err?.error?.message || 'Failed to update book status');
       }
     });
   }

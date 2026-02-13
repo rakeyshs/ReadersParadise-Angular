@@ -4,10 +4,14 @@
   font-family: Arial, sans-serif;
 }
 
+/* BUG FIX: Ensure SweetAlert appears above modals */
+::ng-deep .swal-high-zindex {
+  z-index: 99999 !important;
+}
+
 /* ---------------- Toolbar ---------------- */
 .toolbar {
   display: flex;
-
   align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -508,4 +512,125 @@
 /* ---------------- Btn Close White ---------------- */
 .btn-close-white {
   filter: brightness(0) invert(1);
+}
+
+/* ---------------- Import/Export Modal Styles ---------------- */
+.import-export-content {
+  text-align: center;
+  padding: 30px 40px;
+}
+
+.import-instruction {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.import-instruction a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.import-instruction a:hover {
+  text-decoration: underline;
+}
+
+.file-upload-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 40px 20px;
+  margin: 20px 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-upload-area:hover {
+  border-color: #2563eb;
+  background-color: rgba(37, 99, 235, 0.02);
+}
+
+.file-upload-area.has-file {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.upload-icon {
+  font-size: 48px !important;
+  width: 48px;
+  height: 48px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  color: #475569;
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.upload-hint {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.selected-file-info {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(37, 99, 235, 0.08);
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.selected-file-name {
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-bar-container {
+  margin: 20px 0;
+  display: none;
+}
+
+.progress-bar-container.active {
+  display: block;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* Hidden file input */
+.hidden-file-input {
+  display: none;
 }

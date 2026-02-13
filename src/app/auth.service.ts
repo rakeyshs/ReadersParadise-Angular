@@ -4,6 +4,7 @@ import { tap } from 'rxjs/operators';
 import { Observable, fromEvent, merge, interval, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 
 interface LoginResponse {
   success: boolean;
@@ -18,10 +19,13 @@ export class AuthService {
   private readonly API = 'https://primabi.co/api/v1/Auth/login';
   private readonly INACTIVITY_TIMEOUT = 20 * 60 * 1000; // 20 minutes
   private readonly CHECK_INTERVAL = 60 * 1000; // Check every 1 minute
+  private readonly WARNING_TIME = 2 * 60 * 1000; // Show warning 2 minutes before expiry
   
   private inactivityTimer: Subscription | null = null;
   private sessionCheckTimer: Subscription | null = null;
   private activitySubscription: Subscription | null = null;
+  private tokenExpiryTimer: Subscription | null = null;
+  private warningShown: boolean = false;
 
   constructor(
     private http: HttpClient,
@@ -36,18 +40,22 @@ export class AuthService {
 
     // पहिले session expired आहे का ते check करा
     if (this.isLoggedIn()) {
-      if (this.checkSessionExpiry()) {
-        // Session expired होता तर redirect करा
-        this.redirectToLogin();
+      // Token expiry check करा
+      if (this.isTokenExpired()) {
+        this.showSessionExpiredMessage();
         return;
       }
 
-      // Session valid आहे तर inactivity detection सुरू करा
+      // Inactivity expiry check करा
+      if (this.checkSessionExpiry()) {
+        return;
+      }
+
+      // Session valid आहे तर सर्व timers सुरू करा
       this.setupInactivityDetection();
       this.startInactivityTimer();
       this.startPeriodicSessionCheck();
-
-      // Cross-tab logout साठी storage event listen करा
+      this.startTokenExpiryCheck();
       this.setupStorageListener();
     }
   }
@@ -80,7 +88,9 @@ export class AuthService {
             this.setupInactivityDetection();
             this.startInactivityTimer();
             this.startPeriodicSessionCheck();
+            this.startTokenExpiryCheck();
             this.setupStorageListener();
+            this.warningShown = false;
 
             console.log('%c✅ Login successful - Session tracking started', 'color: green; font-weight: bold;');
 
@@ -122,6 +132,7 @@ export class AuthService {
       if (this.isLoggedIn()) {
         this.updateLastActivity();
         this.resetInactivityTimer();
+        this.warningShown = false; // Reset warning flag on activity
       }
     });
   }
@@ -140,18 +151,63 @@ export class AuthService {
         const elapsed = Date.now() - parseInt(lastActivity, 10);
         const remaining = this.INACTIVITY_TIMEOUT - elapsed;
 
-        // Debug info (optional - remove in production)
-        console.log(`⏱️ Session time remaining: ${Math.floor(remaining / 1000 / 60)} minutes`);
+        // Debug info
+        console.log(`⏱️ Inactivity time remaining: ${Math.floor(remaining / 1000 / 60)} minutes`);
+
+        // Show warning 2 minutes before expiry
+        if (remaining <= this.WARNING_TIME && remaining > 0 && !this.warningShown) {
+          this.showInactivityWarning(Math.ceil(remaining / 1000 / 60));
+        }
 
         if (elapsed >= this.INACTIVITY_TIMEOUT) {
           console.log('%c⏰ Session expired due to 20 minutes inactivity', 'color: orange; font-weight: bold;');
-          this.logout();
-          this.redirectToLogin();
+          this.showSessionExpiredMessage('inactivity');
         }
       } else {
         this.stopInactivityTimer();
       }
     });
+  }
+
+  private startTokenExpiryCheck() {
+    this.stopTokenExpiryCheck();
+    
+    // दर मिनिटाला token expiry check करा
+    this.tokenExpiryTimer = interval(this.CHECK_INTERVAL).subscribe(() => {
+      if (this.isLoggedIn()) {
+        if (this.isTokenExpired()) {
+          console.log('%c⏰ Token expired', 'color: orange; font-weight: bold;');
+          this.showSessionExpiredMessage('token');
+        }
+      } else {
+        this.stopTokenExpiryCheck();
+      }
+    });
+  }
+
+  private stopTokenExpiryCheck() {
+    if (this.tokenExpiryTimer) {
+      this.tokenExpiryTimer.unsubscribe();
+      this.tokenExpiryTimer = null;
+    }
+  }
+
+  private isTokenExpired(): boolean {
+    try {
+      const storage = this.getStorage();
+      if (!storage) return false;
+
+      const tokenExpiration = storage.getItem('tokenExpiration');
+      if (!tokenExpiration) return false;
+
+      const expiryDate = new Date(tokenExpiration);
+      const now = new Date();
+
+      return now >= expiryDate;
+    } catch (e) {
+      console.error('⚠️ Error checking token expiration:', e);
+      return false;
+    }
   }
 
   private startPeriodicSessionCheck() {
@@ -210,6 +266,54 @@ export class AuthService {
     });
   }
 
+  private showInactivityWarning(minutesRemaining: number) {
+    this.warningShown = true;
+    
+    Swal.fire({
+      title: 'Session Expiring Soon',
+      html: `Your session will expire in <strong>${minutesRemaining} minute(s)</strong> due to inactivity.<br><br>Click anywhere to continue your session.`,
+      icon: 'warning',
+      confirmButtonText: 'Continue Session',
+      confirmButtonColor: '#2563eb',
+      allowOutsideClick: true,
+      timer: 30000, // Auto close after 30 seconds
+      timerProgressBar: true,
+      customClass: {
+        container: 'swal-session-warning'
+      }
+    }).then((result) => {
+      if (result.isConfirmed || result.isDismissed) {
+        // User interacted, update activity
+        this.updateLastActivity();
+        this.warningShown = false;
+      }
+    });
+  }
+
+  private showSessionExpiredMessage(reason: 'token' | 'inactivity' = 'inactivity') {
+    this.cleanup();
+    
+    const message = reason === 'token' 
+      ? 'Your session token has expired. Please login again.'
+      : 'Your session has expired due to 20 minutes of inactivity. Please login again.';
+
+    Swal.fire({
+      title: 'Session Expired',
+      text: message,
+      icon: 'warning',
+      confirmButtonText: 'Login Again',
+      confirmButtonColor: '#2563eb',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      customClass: {
+        container: 'swal-session-expired'
+      }
+    }).then(() => {
+      this.logout();
+      this.redirectToLogin();
+    });
+  }
+
   private getStorage(): Storage | null {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       return localStorage;
@@ -260,11 +364,14 @@ export class AuthService {
   private cleanup() {
     this.stopInactivityTimer();
     this.stopPeriodicSessionCheck();
+    this.stopTokenExpiryCheck();
     
     if (this.activitySubscription) {
       this.activitySubscription.unsubscribe();
       this.activitySubscription = null;
     }
+
+    this.warningShown = false;
   }
 
   private redirectToLogin() {
@@ -291,8 +398,7 @@ export class AuthService {
       const elapsed = Date.now() - parseInt(lastActivity, 10);
       if (elapsed > this.INACTIVITY_TIMEOUT) {
         console.log('%c⏰ Session expired - 20 minutes of inactivity', 'color: orange; font-weight: bold;');
-        this.logout();
-        this.redirectToLogin();
+        this.showSessionExpiredMessage('inactivity');
         return true;
       }
       return false;
@@ -315,5 +421,31 @@ export class AuthService {
     } catch {
       return 0;
     }
+  }
+
+  // Optional: Get remaining token time
+  getTokenRemainingTime(): number {
+    try {
+      const storage = this.getStorage();
+      if (!storage) return 0;
+
+      const tokenExpiration = storage.getItem('tokenExpiration');
+      if (!tokenExpiration) return 0;
+
+      const expiryDate = new Date(tokenExpiration);
+      const now = new Date();
+      const remaining = expiryDate.getTime() - now.getTime();
+
+      return Math.max(0, remaining);
+    } catch {
+      return 0;
+    }
+  }
+
+  // Manual session extension
+  extendSession() {
+    this.updateLastActivity();
+    this.warningShown = false;
+    console.log('%c🔄 Session extended', 'color: green; font-weight: bold;');
   }
 }

@@ -37,7 +37,8 @@
   <select class="select-size" [(ngModel)]="pageSize" (change)="applyFilter()">
     <option *ngFor="let size of pageSizes" [value]="size">{{ size }} per page</option>
   </select>
-  </div>
+</div>
+
 <div class="toolbar">
   <!-- Filter Buttons -->
   <button 
@@ -83,18 +84,17 @@
     Add Book
   </button>
 
-  <!-- Export -->
-  <button class="btn btn-secondary" (click)="exportBooks()">
+  <!-- Export Button -->
+  <button class="btn btn-success" (click)="exportBooks()">
     <mat-icon style="vertical-align: middle; font-size: 18px;">download</mat-icon>
     Export
   </button>
 
-  <!-- Import -->
-  <label class="btn btn-secondary" style="margin: 0; cursor: pointer;">
+  <!-- Import Button -->
+  <button class="btn btn-secondary" (click)="openImportModal()">
     <mat-icon style="vertical-align: middle; font-size: 18px;">upload</mat-icon>
     Import
-    <input type="file" accept=".csv" (change)="onFileSelected($event)" style="display: none;" />
-  </label>
+  </button>
 
   <!-- Refresh -->
   <button class="btn btn-secondary" (click)="refresh()">
@@ -244,7 +244,6 @@
     <mat-icon style="font-size: 18px;">chevron_left</mat-icon>
   </button>
 
-  
   <button (click)="next()" [disabled]="currentPage === totalPages">
     <mat-icon style="font-size: 18px;">chevron_right</mat-icon>
   </button>
@@ -502,6 +501,89 @@
         <mat-icon style="vertical-align: middle; font-size: 18px;">save</mat-icon>
         {{ selectedBookId ? 'Update' : 'Add' }} Book
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div *ngIf="showImportModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
+  <div class="modal-content" style="width: 100%; max-width: 600px; background: white;">
+    <div class="gradient-header">
+      <h3 class="modal-title">
+        <mat-icon style="vertical-align: middle;">upload</mat-icon>
+        Import Books
+      </h3>
+    </div>
+    
+    <div class="modal-body">
+      <div class="import-export-content">
+        <p class="import-instruction">
+          To Import Books - use the import template, 
+          <a (click)="downloadTemplate()">Click here</a> to download.
+        </p>
+
+        <input 
+          type="file" 
+          class="hidden-file-input" 
+          #fileInput 
+          accept=".xls,.xlsx,.csv"
+          (change)="onFileChange($event)"
+        />
+
+        <div 
+          class="file-upload-area"
+          [class.has-file]="selectedFile"
+          (click)="fileInput.click()"
+        >
+          <mat-icon class="upload-icon">
+            {{ selectedFile ? 'check_circle' : 'cloud_upload' }}
+          </mat-icon>
+          <div class="upload-text">
+            {{ selectedFile ? 'File Selected' : 'Select files...' }}
+          </div>
+          <div class="upload-hint">
+            You can only upload <strong>xls</strong> or <strong>xlsx</strong> files.
+          </div>
+          
+          <div *ngIf="selectedFile" class="selected-file-info">
+            <div class="selected-file-name">
+              <mat-icon style="font-size: 18px; vertical-align: middle;">description</mat-icon>
+              {{ selectedFile.name }}
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-bar-container" [class.active]="isUploading">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+          </div>
+          <div class="progress-text">Uploading: {{ uploadProgress }}%</div>
+        </div>
+
+        <div class="modal-actions">
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            (click)="closeImportModal()"
+            [disabled]="isUploading"
+          >
+            <mat-icon style="vertical-align: middle; font-size: 18px;">close</mat-icon>
+            Cancel
+          </button>
+
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="uploadFile()"
+            [disabled]="!selectedFile || isUploading"
+          >
+            <mat-icon style="vertical-align: middle; font-size: 18px;">
+              {{ isUploading ? 'hourglass_empty' : 'upload' }}
+            </mat-icon>
+            {{ isUploading ? 'Importing...' : 'Import Books' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
