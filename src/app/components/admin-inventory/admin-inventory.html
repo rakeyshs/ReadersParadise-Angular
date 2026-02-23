@@ -253,24 +253,35 @@
   </span>
 </div>
 
-<!-- Book Modal -->
+<!-- ===================== BOOK MODAL ===================== -->
 <div *ngIf="showBookModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
   <div class="modal-content" style="width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto; background: white;">
-    <div class="gradient-header">
-      <h3 class="modal-title">
+
+    <!-- HEADER with close X button -->
+    <div class="gradient-header" style="display: flex; align-items: center; justify-content: space-between;">
+      <h3 class="modal-title" style="margin: 0;">
         <mat-icon style="vertical-align: middle;">{{ selectedBookId ? 'edit' : 'add' }}</mat-icon>
         {{ selectedBookId ? 'Edit Book' : 'Add New Book' }}
       </h3>
+      <button 
+        class="modal-close-btn" 
+        (click)="closeModal()" 
+        matTooltip="Close"
+        type="button"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
     
     <div class="modal-body">
       <form [formGroup]="bookForm">
         <div class="form-grid">
+
           <!-- Book Title - REQUIRED -->
           <div class="form-group" style="flex: 1 1 100%;">
             <label>
               <mat-icon class="label-icon">book</mat-icon>
-              Book Title <span>*</span>
+              Book Title <span class="required-star">*</span>
             </label>
             <input type="text" class="form-control" formControlName="title" placeholder="Enter book title" />
             <div *ngIf="getErrorMessage('title')" class="text-danger">
@@ -319,7 +330,7 @@
           <div class="form-group">
             <label>
               <mat-icon class="label-icon">inventory</mat-icon>
-              Total Copies <span>*</span>
+              Total Copies <span class="required-star">*</span>
             </label>
             <input 
               type="number" 
@@ -357,33 +368,69 @@
             <input type="number" class="form-control" formControlName="minStock" placeholder="Minimum stock level" />
           </div>
 
-          <!-- Category -->
-          <div class="form-group searchable-select">
+          <!-- ===== CATEGORY - REQUIRED with Hierarchical Dropdown ===== -->
+          <div class="form-group searchable-select" style="flex: 1 1 100%;">
             <label>
               <mat-icon class="label-icon">category</mat-icon>
-              Category
+              Category <span class="required-star">*</span>
             </label>
             <input 
               type="text" 
-              class="form-control" 
+              class="form-control"
+              [class.input-error]="categoryTouched && bookForm.get('categoryId')?.value === 0"
               [(ngModel)]="categorySearch"
               [ngModelOptions]="{standalone: true}"
-              (focus)="showCategoryDropdown = true"
+              (input)="onCategorySearchInput()"
+              (focus)="showCategoryDropdown = true; categoryTouched = true;"
               (blur)="onCategoryBlur()"
-              placeholder="Search category..."
+              placeholder="Search and select category..."
             />
-            <div *ngIf="showCategoryDropdown && filteredCategories.length > 0" class="dropdown-list">
-              <div 
-                *ngFor="let cat of filteredCategories" 
-                class="dropdown-item"
-                (mousedown)="selectCategory(cat)"
-              >
-                {{ cat.name }}
-              </div>
+
+            <!-- Hierarchical Category Dropdown -->
+            <div *ngIf="showCategoryDropdown && getCategoryDropdownItems().length > 0" class="dropdown-list category-dropdown-list">
+              <ng-container *ngFor="let item of getCategoryDropdownItems()">
+                <!-- Parent Category Row -->
+                <div 
+                  *ngIf="!item.isSubCategory"
+                  class="dropdown-item dropdown-item-parent"
+                  (mousedown)="selectCategory(item)"
+                >
+                  <mat-icon style="font-size: 15px; vertical-align: middle; margin-right: 6px; color: #2563eb;">folder</mat-icon>
+                  {{ item.name }}
+                 <!-- NEW -->
+<span *ngIf="(item.subCount ?? 0) > 0" class="sub-count-badge">{{ item.subCount }}</span>
+                </div>
+                <!-- Sub Category Row -->
+                <div 
+                  *ngIf="item.isSubCategory"
+                  class="dropdown-item dropdown-item-child"
+                  (mousedown)="selectCategory(item)"
+                >
+                  <span class="sub-arrow">↳</span>
+                  {{ item.name }}
+                </div>
+              </ng-container>
             </div>
+
+            <!-- No results -->
+            <div *ngIf="showCategoryDropdown && getCategoryDropdownItems().length === 0 && categorySearch.trim()" 
+                 class="dropdown-list" style="padding: 10px; text-align: center; color: #9ca3af; font-size: 13px;">
+              No categories found
+            </div>
+
+            <!-- Selected Category Badge -->
             <div *ngIf="getSelectedCategoryName()" class="selected-item">
-              <span>{{ getSelectedCategoryName() }}</span>
+              <span>
+                <mat-icon style="font-size: 13px; vertical-align: middle; color: #2563eb;">category</mat-icon>
+                {{ getSelectedCategoryName() }}
+              </span>
               <button type="button" class="clear-selection" (click)="clearCategory()">✕</button>
+            </div>
+
+            <!-- Validation Error -->
+            <div *ngIf="categoryTouched && bookForm.get('categoryId')?.value === 0" class="text-danger" style="margin-top: 4px;">
+              <mat-icon style="font-size: 14px; vertical-align: middle;">error</mat-icon>
+              Category is required
             </div>
           </div>
 
@@ -488,6 +535,7 @@
               New Release
             </label>
           </div>
+
         </div>
       </form>
     </div>
@@ -505,14 +553,24 @@
   </div>
 </div>
 
-<!-- Import Modal -->
+<!-- ===================== IMPORT MODAL ===================== -->
 <div *ngIf="showImportModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
   <div class="modal-content" style="width: 100%; max-width: 600px; background: white;">
-    <div class="gradient-header">
-      <h3 class="modal-title">
+
+    <!-- HEADER with close X button -->
+    <div class="gradient-header" style="display: flex; align-items: center; justify-content: space-between;">
+      <h3 class="modal-title" style="margin: 0;">
         <mat-icon style="vertical-align: middle;">upload</mat-icon>
         Import Books
       </h3>
+      <button 
+        class="modal-close-btn" 
+        (click)="closeImportModal()" 
+        [disabled]="isUploading"
+        type="button"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
     
     <div class="modal-body">
@@ -588,15 +646,26 @@
   </div>
 </div>
 
-<!-- Rental History Modal -->
+<!-- ===================== RENTAL HISTORY MODAL ===================== -->
 <div *ngIf="showRentalHistoryModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
   <div class="modal-content modal-xl" style="width: 100%; max-width: 1200px; max-height: 90vh; overflow-y: auto; background: white;">
-    <div class="gradient-header">
-      <h3 class="modal-title">
-        <mat-icon style="vertical-align: middle;">history</mat-icon>
-        Rental History - {{ selectedBookTitle }}
-      </h3>
-      <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">ISBN: {{ selectedBookIsbn }} | Total Rentals: {{ totalRentals }}</p>
+
+    <!-- HEADER with close X button -->
+    <div class="gradient-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
+      <div>
+        <h3 class="modal-title" style="margin: 0;">
+          <mat-icon style="vertical-align: middle;">history</mat-icon>
+          Rental History - {{ selectedBookTitle }}
+        </h3>
+        <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.9;">ISBN: {{ selectedBookIsbn }} | Total Rentals: {{ totalRentals }}</p>
+      </div>
+      <button 
+        class="modal-close-btn" 
+        (click)="closeRentalHistoryModal()" 
+        type="button"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
     
     <div class="modal-body">
