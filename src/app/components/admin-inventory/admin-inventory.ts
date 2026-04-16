@@ -1115,6 +1115,8 @@ export class AdminInventory implements OnInit {
     return '';
   }
 
+
+  // demo testing
   private getFieldLabel(fieldName: string): string {
     const labels: { [key: string]: string } = {
       title: 'Book Title',
