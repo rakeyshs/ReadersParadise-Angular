@@ -594,7 +594,7 @@ export class AdminInventory implements OnInit {
       binding: apiBook.binding || '',
       imageUrl: apiBook.imageUrl || '',
       shelfLocation: '',
-      totalCopies: 0,
+      totalCopies: apiBook.totalCopies||0,
       availableCopies: apiBook.availableCopies || 0,
       minStock: 0,
       rentedCopies: 0,
@@ -791,12 +791,19 @@ export class AdminInventory implements OnInit {
     if (this.selectedBookId) {
       // EDIT MODE
       const payloadEdit = {
+        isbn: this.bookForm.value.isbn,
         title: this.bookForm.value.title,
         description: this.bookForm.value.description,
+        pages: this.bookForm.value.pages,
+        binding: this.bookForm.value.binding,
         imageUrl: this.bookForm.value.imageUrl,
-        categoryId: this.bookForm.value.categoryId,
-        publisherId: this.bookForm.value.publisherId,
+        shelfLocation: this.bookForm.value.shelfLocation,
+        categoryId: this.bookForm.value.categoryId || null,
+        publisherId: this.bookForm.value.publisherId || null,
         totalCopies: this.bookForm.value.totalCopies,
+        availableCopies: this.bookForm.value.availableCopies,
+        minimumStock: this.bookForm.value.minStock,
+        authorIds: authorIds.length > 0 ? authorIds : null,
         isNewRelease: this.bookForm.value.isNewRelease,
         isBestSeller: this.bookForm.value.isBestSeller,
         isActive: true
@@ -832,9 +839,10 @@ export class AdminInventory implements OnInit {
         shelfLocation: this.bookForm.value.shelfLocation,
         availableCopies: this.bookForm.value.availableCopies,
         totalCopies: this.bookForm.value.totalCopies,
-        categoryId: this.bookForm.value.categoryId,
-        publisherId: this.bookForm.value.publisherId,
-        authorIds: authorIds,
+        minimumStock: this.bookForm.value.minStock,
+        categoryId: this.bookForm.value.categoryId || null,
+        publisherId: this.bookForm.value.publisherId || null,
+        authorIds: authorIds.length > 0 ? authorIds : null,
         isBestSeller: this.bookForm.value.isBestSeller,
         isNewRelease: this.bookForm.value.isNewRelease
       };
