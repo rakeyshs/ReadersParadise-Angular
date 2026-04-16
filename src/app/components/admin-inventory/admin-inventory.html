@@ -155,7 +155,7 @@
         <div class="book-title-cell">
           <strong>{{ book.title }}</strong>
           <span *ngIf="book.description" class="book-description">{{ book.description }}</span>
-          <div style="display: flex; gap: 6px; margin-top: 4px;">
+          <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
             <span *ngIf="book.isBestSeller" style="background: #fbbf24; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">
               <mat-icon style="font-size: 12px; vertical-align: middle;">star</mat-icon> Best Seller
             </span>
@@ -190,6 +190,7 @@
           {{ book.availableCopies }}
         </span>
       </td>
+      <!-- rentedCopies: from rentedCount (API) or derived totalCopies - availableCopies -->
       <td style="text-align: center;">{{ book.rentedCopies }}</td>
       <td style="text-align: center;">
         <div class="actions">
@@ -257,7 +258,7 @@
 <div *ngIf="showBookModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
   <div class="modal-content" style="width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto; background: white;">
 
-    <!-- HEADER with close X button -->
+    <!-- HEADER -->
     <div class="gradient-header" style="display: flex; align-items: center; justify-content: space-between;">
       <h3 class="modal-title" style="margin: 0;">
         <mat-icon style="vertical-align: middle;">{{ selectedBookId ? 'edit' : 'add' }}</mat-icon>
@@ -355,8 +356,13 @@
               type="number" 
               class="form-control" 
               formControlName="availableCopies" 
+              [attr.readonly]="selectedBookId ? true : null"
+              [style.background]="selectedBookId ? '#f8fafc' : ''"
               placeholder="Available copies"
             />
+            <small *ngIf="selectedBookId" style="color: #6b7280; font-size: 11px; margin-top: 2px; display: block;">
+              Auto-calculated when total copies changes
+            </small>
           </div>
 
           <!-- Min Stock -->
@@ -368,7 +374,7 @@
             <input type="number" class="form-control" formControlName="minStock" placeholder="Minimum stock level" />
           </div>
 
-          <!-- ===== CATEGORY - REQUIRED with Hierarchical Dropdown ===== -->
+          <!-- ===== CATEGORY - REQUIRED ===== -->
           <div class="form-group searchable-select" style="flex: 1 1 100%;">
             <label>
               <mat-icon class="label-icon">category</mat-icon>
@@ -389,7 +395,6 @@
             <!-- Hierarchical Category Dropdown -->
             <div *ngIf="showCategoryDropdown && getCategoryDropdownItems().length > 0" class="dropdown-list category-dropdown-list">
               <ng-container *ngFor="let item of getCategoryDropdownItems()">
-                <!-- Parent Category Row -->
                 <div 
                   *ngIf="!item.isSubCategory"
                   class="dropdown-item dropdown-item-parent"
@@ -397,10 +402,8 @@
                 >
                   <mat-icon style="font-size: 15px; vertical-align: middle; margin-right: 6px; color: #2563eb;">folder</mat-icon>
                   {{ item.name }}
-                 <!-- NEW -->
-<span *ngIf="(item.subCount ?? 0) > 0" class="sub-count-badge">{{ item.subCount }}</span>
+                  <span *ngIf="(item.subCount ?? 0) > 0" class="sub-count-badge">{{ item.subCount }}</span>
                 </div>
-                <!-- Sub Category Row -->
                 <div 
                   *ngIf="item.isSubCategory"
                   class="dropdown-item dropdown-item-child"
@@ -412,13 +415,11 @@
               </ng-container>
             </div>
 
-            <!-- No results -->
             <div *ngIf="showCategoryDropdown && getCategoryDropdownItems().length === 0 && categorySearch.trim()" 
                  class="dropdown-list" style="padding: 10px; text-align: center; color: #9ca3af; font-size: 13px;">
               No categories found
             </div>
 
-            <!-- Selected Category Badge -->
             <div *ngIf="getSelectedCategoryName()" class="selected-item">
               <span>
                 <mat-icon style="font-size: 13px; vertical-align: middle; color: #2563eb;">category</mat-icon>
@@ -427,7 +428,6 @@
               <button type="button" class="clear-selection" (click)="clearCategory()">✕</button>
             </div>
 
-            <!-- Validation Error -->
             <div *ngIf="categoryTouched && bookForm.get('categoryId')?.value === 0" class="text-danger" style="margin-top: 4px;">
               <mat-icon style="font-size: 14px; vertical-align: middle;">error</mat-icon>
               Category is required
@@ -503,6 +503,15 @@
               Image URL
             </label>
             <input type="text" class="form-control" formControlName="imageUrl" placeholder="Image URL" />
+            <!-- Image preview -->
+            <div *ngIf="bookForm.get('imageUrl')?.value" style="margin-top: 8px;">
+              <img 
+                [src]="bookForm.get('imageUrl')?.value" 
+                alt="Preview"
+                style="height: 80px; width: 56px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;"
+                (error)="$any($event.target).style.display='none'"
+              />
+            </div>
           </div>
 
           <!-- Description -->
@@ -557,7 +566,6 @@
 <div *ngIf="showImportModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
   <div class="modal-content" style="width: 100%; max-width: 600px; background: white;">
 
-    <!-- HEADER with close X button -->
     <div class="gradient-header" style="display: flex; align-items: center; justify-content: space-between;">
       <h3 class="modal-title" style="margin: 0;">
         <mat-icon style="vertical-align: middle;">upload</mat-icon>
@@ -650,7 +658,6 @@
 <div *ngIf="showRentalHistoryModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;">
   <div class="modal-content modal-xl" style="width: 100%; max-width: 1200px; max-height: 90vh; overflow-y: auto; background: white;">
 
-    <!-- HEADER with close X button -->
     <div class="gradient-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
       <div>
         <h3 class="modal-title" style="margin: 0;">

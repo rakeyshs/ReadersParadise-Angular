@@ -29,6 +29,9 @@ interface Book {
   shelfLocation?: string;
   isBestSeller?: boolean;
   isNewRelease?: boolean;
+  rentedCount?: number;
+  averageRating?: number;
+  reviewCount?: number;
 }
 
 interface Category {
@@ -37,12 +40,11 @@ interface Category {
   subCategories?: Category[];
 }
 
-// Flat item used in the hierarchical dropdown
 interface CategoryDropdownItem {
   id: number;
   name: string;
   isSubCategory: boolean;
-  subCount?: number; // only set on parent items
+  subCount?: number;
 }
 
 export interface Author {
@@ -95,12 +97,11 @@ export class AdminInventory implements OnInit {
   pages: number[] = [];
   authors: Author[] = [];
   categories: Category[] = [];
-  allCategories: Category[] = []; // Flat list for name lookups
+  allCategories: Category[] = [];
   bookForm: FormGroup;
   selectedBookId: number | null = null;
   showBookModal: boolean = false;
 
-  // Filter states
   selectedCategoryId: number = 0;
   showNewReleases: boolean = false;
   showBestSellers: boolean = false;
@@ -113,7 +114,6 @@ export class AdminInventory implements OnInit {
   totalRentals: number = 0;
   loadingHistory: boolean = false;
 
-  // Searchable dropdown state
   categorySearch: string = '';
   authorSearch: string = '';
   publisherSearch: string = '';
@@ -121,13 +121,9 @@ export class AdminInventory implements OnInit {
   showAuthorDropdown: boolean = false;
   showPublisherDropdown: boolean = false;
 
-  // Category validation touch flag
   categoryTouched: boolean = false;
-
-  // Multiple author selection
   selectedAuthors: Author[] = [];
 
-  // Import Modal
   showImportModal: boolean = false;
   selectedFile: File | null = null;
   uploadProgress: number = 0;
@@ -178,11 +174,6 @@ export class AdminInventory implements OnInit {
 
   // ===== HIERARCHICAL CATEGORY DROPDOWN =====
 
-  /**
-   * Builds a flat list of CategoryDropdownItems for display in the hierarchical dropdown.
-   * Parent categories are shown first, followed immediately by their indented subcategories.
-   * Filters by categorySearch if provided.
-   */
   getCategoryDropdownItems(): CategoryDropdownItem[] {
     const items: CategoryDropdownItem[] = [];
     if (!this.categories || this.categories.length === 0) return items;
@@ -196,17 +187,12 @@ export class AdminInventory implements OnInit {
       );
 
       if (catMatches || matchingSubs.length > 0) {
-        // Determine which subs to show:
-        // If no search or parent itself matches with no search, show all subs
-        // If search and only parent name matches, still show all subs
-        // If search only matches subs, show only matching subs
         const subsToShow = !search
           ? (cat.subCategories || [])
           : catMatches && matchingSubs.length === 0
-            ? (cat.subCategories || [])    // parent matches, show all subs
-            : matchingSubs;                 // show only filtered subs
+            ? (cat.subCategories || [])
+            : matchingSubs;
 
-        // Push parent row
         items.push({
           id: cat.id,
           name: cat.name,
@@ -214,7 +200,6 @@ export class AdminInventory implements OnInit {
           subCount: subsToShow.length
         });
 
-        // Push sub rows
         for (const sub of subsToShow) {
           items.push({
             id: sub.id,
@@ -228,9 +213,7 @@ export class AdminInventory implements OnInit {
     return items;
   }
 
-  /** Called on every keystroke in the category search input */
   onCategorySearchInput(): void {
-    // Clear selected category if user clears the input
     if (!this.categorySearch.trim()) {
       this.bookForm.patchValue({ categoryId: 0 });
     }
@@ -248,7 +231,6 @@ export class AdminInventory implements OnInit {
     setTimeout(() => {
       this.showCategoryDropdown = false;
       this.categoryTouched = true;
-      // If input doesn't match a selected category, reset
       const currentId = this.bookForm.get('categoryId')?.value;
       if (!currentId || currentId === 0) {
         this.categorySearch = '';
@@ -477,7 +459,7 @@ export class AdminInventory implements OnInit {
         { headers: { Authorization: `Bearer ${token}` }, params }
       ).subscribe({
         next: res => {
-          this.books = res.data.map(b => this.mapSearchApiToBook(b));
+          this.books = res.data.map(b => this.mapApiToBook(b));
           this.totalCount = res.totalCount || 0;
           this.totalPages = res.totalPages || Math.ceil(this.totalCount / this.pageSize);
           this.pages = Array.from({ length: this.totalPages }, (_, i) => i + 1);
@@ -603,31 +585,10 @@ export class AdminInventory implements OnInit {
   }
 
   // ===== API MAPPING =====
+  // Single unified mapper handles all API responses (list, search, detail)
 
-  private mapSearchApiToBook(apiBook: any): any {
-    return {
-      id: apiBook.id,
-      title: apiBook.title || '',
-      isbn: apiBook.isbn || '',
-      description: '',
-      pages: apiBook.pages || 0,
-      binding: apiBook.binding || '',
-      imageUrl: apiBook.imageUrl || '',
-      shelfLocation: '',
-      totalCopies: 0,
-      availableCopies: apiBook.availableCopies || 0,
-      minStock: 0,
-      rentedCopies: 0,
-      category: apiBook.category || '',
-      publisher: apiBook.publisher || '',
-      authors: apiBook.authors?.map((name: string) => ({ name })) || [],
-      archived: false,
-      isBestSeller: false,
-      isNewRelease: false
-    };
-  }
-
-  private mapApiToBook(apiBook: any): any {
+  private mapApiToBook(apiBook: any): Book {
+    // Authors: API returns either string[] or {id, name}[] — handle both
     const authors = Array.isArray(apiBook.authors)
       ? apiBook.authors.map((a: any) => {
           if (typeof a === 'string') return { id: 0, name: a };
@@ -635,13 +596,24 @@ export class AdminInventory implements OnInit {
         })
       : [];
 
+    // Category: API returns either string or {id, name}
     const category = typeof apiBook.category === 'string'
       ? apiBook.category
       : (apiBook.category?.name || '');
 
+    // Publisher: API returns either string or {id, name}
     const publisher = typeof apiBook.publisher === 'string'
       ? apiBook.publisher
       : (apiBook.publisher?.name || '');
+
+    // totalCopies: some endpoints omit it — fall back to availableCopies
+    const totalCopies = apiBook.totalCopies ?? apiBook.availableCopies ?? 0;
+    const availableCopies = apiBook.availableCopies ?? 0;
+
+    // rentedCopies: use rentedCount if present, else derive from copies
+    const rentedCopies = apiBook.rentedCount !== undefined && apiBook.rentedCount !== null
+      ? apiBook.rentedCount
+      : Math.max(0, totalCopies - availableCopies);
 
     return {
       id: apiBook.id,
@@ -652,16 +624,20 @@ export class AdminInventory implements OnInit {
       binding: apiBook.binding || '',
       imageUrl: apiBook.imageUrl || '',
       shelfLocation: apiBook.shelfLocation || '',
-      totalCopies: apiBook.totalCopies || 0,
-      availableCopies: apiBook.availableCopies || 0,
+      totalCopies,
+      availableCopies,
       minStock: apiBook.minStock || 0,
-      rentedCopies: (apiBook.totalCopies || 0) - (apiBook.availableCopies || 0),
+      rentedCopies,
+      rentedCount: apiBook.rentedCount || 0,
       category,
       publisher,
       authors,
       archived: apiBook.archived || false,
       isBestSeller: apiBook.isBestSeller || false,
-      isNewRelease: apiBook.isNewRelease || false
+      isNewRelease: apiBook.isNewRelease || false,
+      averageRating: apiBook.averageRating || 0,
+      reviewCount: apiBook.reviewCount || 0,
+      location: apiBook.shelfLocation || ''
     };
   }
 
@@ -742,38 +718,74 @@ export class AdminInventory implements OnInit {
     if (event) event.stopPropagation();
 
     this.selectedBookId = book.id;
-    this.initialAvailableCopies = book.availableCopies;
-    this.initialTotalCopies = book.totalCopies || 0;
+    this.initialAvailableCopies = book.availableCopies ?? 0;
+    this.initialTotalCopies = book.totalCopies ?? 0;
     this.categoryTouched = false;
 
+    // Reset search fields first
+    this.categorySearch = '';
+    this.publisherSearch = '';
+    this.authorSearch = '';
+    this.selectedAuthors = [];
+
     setTimeout(() => {
+      // ── Category ──
       let categoryId = 0;
       if (book.category) {
-        const categoryName = typeof book.category === 'string' ? book.category : book.category.name;
-        const category = this.allCategories.find(c => c.name === categoryName);
-        categoryId = category ? category.id : 0;
-        this.categorySearch = category ? category.name : '';
+        const categoryName = typeof book.category === 'string'
+          ? book.category
+          : (book.category?.name || '');
+        if (categoryName) {
+          const found = this.allCategories.find(
+            c => c.name.toLowerCase() === categoryName.toLowerCase()
+          );
+          categoryId = found ? found.id : 0;
+          this.categorySearch = found ? found.name : categoryName;
+        }
       }
 
+      // ── Publisher ──
       let publisherId = 0;
       if (book.publisher) {
-        const publisherName = typeof book.publisher === 'string' ? book.publisher : book.publisher.name;
-        const publisher = this.publishers.find(p => p.name === publisherName);
-        publisherId = publisher ? publisher.id : 0;
-        this.publisherSearch = publisher ? publisher.name : '';
+        const publisherName = typeof book.publisher === 'string'
+          ? book.publisher
+          : (book.publisher?.name || '');
+        if (publisherName) {
+          const found = this.publishers.find(
+            p => p.name.toLowerCase() === publisherName.toLowerCase()
+          );
+          publisherId = found ? found.id : 0;
+          this.publisherSearch = found ? found.name : publisherName;
+        }
       }
 
+      // ── Authors ──
       this.selectedAuthors = [];
       if (book.authors && book.authors.length > 0) {
         book.authors.forEach((author: any) => {
-          const authorName = typeof author === 'string' ? author : author.name;
-          const foundAuthor = this.authors.find(a => a.name === authorName);
-          if (foundAuthor) {
-            this.selectedAuthors.push(foundAuthor);
+          const authorName = typeof author === 'string' ? author : (author?.name || '');
+          if (!authorName) return;
+
+          // If author already has a valid id, use it directly
+          if (author.id && author.id > 0) {
+            const found = this.authors.find(a => a.id === author.id);
+            if (found && !this.selectedAuthors.find(s => s.id === found.id)) {
+              this.selectedAuthors.push(found);
+              return;
+            }
+          }
+
+          // Otherwise match by name
+          const found = this.authors.find(
+            a => a.name.toLowerCase() === authorName.toLowerCase()
+          );
+          if (found && !this.selectedAuthors.find(s => s.id === found.id)) {
+            this.selectedAuthors.push(found);
           }
         });
       }
 
+      // ── Patch form with ALL fields from API ──
       this.bookForm.patchValue({
         title: book.title || '',
         isbn: book.isbn || '',
@@ -782,11 +794,11 @@ export class AdminInventory implements OnInit {
         binding: book.binding || '',
         imageUrl: book.imageUrl || '',
         shelfLocation: book.shelfLocation || '',
-        totalCopies: this.initialTotalCopies,
+        totalCopies: book.totalCopies || 0,
         availableCopies: book.availableCopies || 0,
         minStock: book.minStock || 0,
-        categoryId: categoryId,
-        publisherId: publisherId,
+        categoryId,
+        publisherId,
         isBestSeller: book.isBestSeller || false,
         isNewRelease: book.isNewRelease || false
       });
@@ -831,14 +843,20 @@ export class AdminInventory implements OnInit {
     const authorIds = this.selectedAuthors.map(a => a.id);
 
     if (this.selectedBookId) {
-      // EDIT MODE
+      // ── EDIT MODE ──
       const payloadEdit = {
         title: this.bookForm.value.title,
+        isbn: this.bookForm.value.isbn,
         description: this.bookForm.value.description,
+        pages: this.bookForm.value.pages,
+        binding: this.bookForm.value.binding,
         imageUrl: this.bookForm.value.imageUrl,
+        shelfLocation: this.bookForm.value.shelfLocation,
         categoryId: this.bookForm.value.categoryId,
         publisherId: this.bookForm.value.publisherId,
+        authorIds,
         totalCopies: this.bookForm.value.totalCopies,
+        minStock: this.bookForm.value.minStock,
         isNewRelease: this.bookForm.value.isNewRelease,
         isBestSeller: this.bookForm.value.isBestSeller,
         isActive: true
@@ -863,7 +881,7 @@ export class AdminInventory implements OnInit {
       });
 
     } else {
-      // ADD MODE
+      // ── ADD MODE ──
       const payloadAdd = {
         isbn: this.bookForm.value.isbn,
         title: this.bookForm.value.title,
@@ -874,9 +892,10 @@ export class AdminInventory implements OnInit {
         shelfLocation: this.bookForm.value.shelfLocation,
         availableCopies: this.bookForm.value.availableCopies,
         totalCopies: this.bookForm.value.totalCopies,
+        minStock: this.bookForm.value.minStock,
         categoryId: this.bookForm.value.categoryId,
         publisherId: this.bookForm.value.publisherId,
-        authorIds: authorIds,
+        authorIds,
         isBestSeller: this.bookForm.value.isBestSeller,
         isNewRelease: this.bookForm.value.isNewRelease
       };
