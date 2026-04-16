@@ -37,6 +37,14 @@ interface Category {
   subCategories?: Category[];
 }
 
+// Flat item used in the hierarchical dropdown
+interface CategoryDropdownItem {
+  id: number;
+  name: string;
+  isSubCategory: boolean;
+  subCount?: number; // only set on parent items
+}
+
 export interface Author {
   id: number;
   name: string;
@@ -62,12 +70,12 @@ interface RentalHistory {
   selector: 'app-admin-inventory',
   standalone: true,
   imports: [
-    CommonModule, 
-    ReactiveFormsModule, 
-    FormsModule, 
-    HttpClientModule, 
-    MatButtonModule, 
-    MatIconModule, 
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    HttpClientModule,
+    MatButtonModule,
+    MatIconModule,
     MatTooltipModule,
     MatSlideToggleModule
   ],
@@ -87,17 +95,17 @@ export class AdminInventory implements OnInit {
   pages: number[] = [];
   authors: Author[] = [];
   categories: Category[] = [];
-  allCategories: Category[] = []; // Flat list for dropdown
+  allCategories: Category[] = []; // Flat list for name lookups
   bookForm: FormGroup;
   selectedBookId: number | null = null;
   showBookModal: boolean = false;
-  
+
   // Filter states
-  selectedCategoryId: number = 0; // 0 means "All"
+  selectedCategoryId: number = 0;
   showNewReleases: boolean = false;
   showBestSellers: boolean = false;
   showMostRented: boolean = false;
-  
+
   showRentalHistoryModal: boolean = false;
   rentalHistory: RentalHistory[] = [];
   selectedBookTitle: string = '';
@@ -105,7 +113,7 @@ export class AdminInventory implements OnInit {
   totalRentals: number = 0;
   loadingHistory: boolean = false;
 
-  // Properties for searchable dropdowns
+  // Searchable dropdown state
   categorySearch: string = '';
   authorSearch: string = '';
   publisherSearch: string = '';
@@ -113,10 +121,13 @@ export class AdminInventory implements OnInit {
   showAuthorDropdown: boolean = false;
   showPublisherDropdown: boolean = false;
 
+  // Category validation touch flag
+  categoryTouched: boolean = false;
+
   // Multiple author selection
   selectedAuthors: Author[] = [];
 
-  // Import Modal (separate from export)
+  // Import Modal
   showImportModal: boolean = false;
   selectedFile: File | null = null;
   uploadProgress: number = 0;
@@ -161,82 +172,120 @@ export class AdminInventory implements OnInit {
   ngOnInit(): void {
     this.loadCategories();
     this.loadPublishers();
-    this.loadAuthors(); 
+    this.loadAuthors();
     this.loadInventory();
   }
 
-  get filteredCategories(): Category[] {
-    if (!this.categories || this.categories.length === 0) {
-      return [];
+  // ===== HIERARCHICAL CATEGORY DROPDOWN =====
+
+  /**
+   * Builds a flat list of CategoryDropdownItems for display in the hierarchical dropdown.
+   * Parent categories are shown first, followed immediately by their indented subcategories.
+   * Filters by categorySearch if provided.
+   */
+  getCategoryDropdownItems(): CategoryDropdownItem[] {
+    const items: CategoryDropdownItem[] = [];
+    if (!this.categories || this.categories.length === 0) return items;
+
+    const search = this.categorySearch.trim().toLowerCase();
+
+    for (const cat of this.categories) {
+      const catMatches = !search || cat.name.toLowerCase().includes(search);
+      const matchingSubs = (cat.subCategories || []).filter(
+        sub => !search || sub.name.toLowerCase().includes(search)
+      );
+
+      if (catMatches || matchingSubs.length > 0) {
+        // Determine which subs to show:
+        // If no search or parent itself matches with no search, show all subs
+        // If search and only parent name matches, still show all subs
+        // If search only matches subs, show only matching subs
+        const subsToShow = !search
+          ? (cat.subCategories || [])
+          : catMatches && matchingSubs.length === 0
+            ? (cat.subCategories || [])    // parent matches, show all subs
+            : matchingSubs;                 // show only filtered subs
+
+        // Push parent row
+        items.push({
+          id: cat.id,
+          name: cat.name,
+          isSubCategory: false,
+          subCount: subsToShow.length
+        });
+
+        // Push sub rows
+        for (const sub of subsToShow) {
+          items.push({
+            id: sub.id,
+            name: sub.name,
+            isSubCategory: true
+          });
+        }
+      }
     }
+
+    return items;
+  }
+
+  /** Called on every keystroke in the category search input */
+  onCategorySearchInput(): void {
+    // Clear selected category if user clears the input
     if (!this.categorySearch.trim()) {
-      return this.categories;
+      this.bookForm.patchValue({ categoryId: 0 });
     }
-    const search = this.categorySearch.toLowerCase();
-    return this.categories.filter(c => c.name.toLowerCase().includes(search));
+    this.showCategoryDropdown = true;
   }
 
-  get filteredAuthors(): Author[] {
-    if (!this.authors || this.authors.length === 0) {
-      return [];
-    }
-    if (!this.authorSearch.trim()) {
-      return this.authors;
-    }
-    const search = this.authorSearch.toLowerCase();
-    return this.authors.filter(a => a.name.toLowerCase().includes(search));
-  }
-
-  get filteredPublishers(): Publisher[] {
-    if (!this.publishers || this.publishers.length === 0) {
-      return [];
-    }
-    if (!this.publisherSearch.trim()) {
-      return this.publishers;
-    }
-    const search = this.publisherSearch.toLowerCase();
-    return this.publishers.filter(p => p.name.toLowerCase().includes(search));
-  }
-
-  selectCategory(category: Category): void {
-    this.bookForm.patchValue({ categoryId: category.id });
-    this.categorySearch = category.name;
+  selectCategory(item: CategoryDropdownItem): void {
+    this.bookForm.patchValue({ categoryId: item.id });
+    this.categorySearch = item.name;
     this.showCategoryDropdown = false;
+    this.categoryTouched = true;
   }
 
   onCategoryBlur(): void {
     setTimeout(() => {
       this.showCategoryDropdown = false;
+      this.categoryTouched = true;
+      // If input doesn't match a selected category, reset
+      const currentId = this.bookForm.get('categoryId')?.value;
+      if (!currentId || currentId === 0) {
+        this.categorySearch = '';
+      }
     }, 200);
   }
 
   clearCategory(): void {
     this.bookForm.patchValue({ categoryId: 0 });
     this.categorySearch = '';
+    this.categoryTouched = true;
   }
 
   getSelectedCategoryName(): string {
     const id = this.bookForm.get('categoryId')?.value;
-    if (!id || !this.allCategories || this.allCategories.length === 0) {
-      return '';
-    }
+    if (!id || !this.allCategories || this.allCategories.length === 0) return '';
     const category = this.allCategories.find(c => c.id === id);
     return category ? category.name : '';
   }
 
   getActiveCategoryName(): string {
-    if (!this.selectedCategoryId || !this.allCategories || this.allCategories.length === 0) {
-      return '';
-    }
+    if (!this.selectedCategoryId || !this.allCategories || this.allCategories.length === 0) return '';
     const category = this.allCategories.find(c => c.id === this.selectedCategoryId);
     return category ? category.name : '';
   }
 
-  // Multiple Author Selection Methods
+  // ===== AUTHORS =====
+
+  get filteredAuthors(): Author[] {
+    if (!this.authors || this.authors.length === 0) return [];
+    if (!this.authorSearch.trim()) return this.authors;
+    const search = this.authorSearch.toLowerCase();
+    return this.authors.filter(a => a.name.toLowerCase().includes(search));
+  }
+
   selectAuthor(author: Author): void {
-    if (!author || !this.selectedAuthors) {
-      return;
-    }
+    if (!author || !this.selectedAuthors) return;
     if (!this.selectedAuthors.find(a => a.id === author.id)) {
       this.selectedAuthors.push(author);
     }
@@ -245,9 +294,7 @@ export class AdminInventory implements OnInit {
   }
 
   removeAuthor(author: Author): void {
-    if (!author || !this.selectedAuthors) {
-      return;
-    }
+    if (!author || !this.selectedAuthors) return;
     this.selectedAuthors = this.selectedAuthors.filter(a => a.id !== author.id);
   }
 
@@ -260,6 +307,15 @@ export class AdminInventory implements OnInit {
   clearAllAuthors(): void {
     this.selectedAuthors = [];
     this.authorSearch = '';
+  }
+
+  // ===== PUBLISHERS =====
+
+  get filteredPublishers(): Publisher[] {
+    if (!this.publishers || this.publishers.length === 0) return [];
+    if (!this.publisherSearch.trim()) return this.publishers;
+    const search = this.publisherSearch.toLowerCase();
+    return this.publishers.filter(p => p.name.toLowerCase().includes(search));
   }
 
   selectPublisher(publisher: Publisher): void {
@@ -281,37 +337,32 @@ export class AdminInventory implements OnInit {
 
   getSelectedPublisherName(): string {
     const id = this.bookForm.get('publisherId')?.value;
-    if (!id || !this.publishers || this.publishers.length === 0) {
-      return '';
-    }
+    if (!id || !this.publishers || this.publishers.length === 0) return '';
     const publisher = this.publishers.find(p => p.id === id);
     return publisher ? publisher.name : '';
   }
 
+  // ===== COPIES LOGIC =====
+
   onTotalCopiesChange(): void {
     if (this.selectedBookId) {
       const newTotal = this.bookForm.get('totalCopies')?.value || 0;
-      const oldTotal = this.initialTotalCopies;
-      const difference = newTotal - oldTotal;
-      
+      const difference = newTotal - this.initialTotalCopies;
       const newAvailable = this.initialAvailableCopies + difference;
-      
-      this.bookForm.patchValue({ 
-        availableCopies: Math.max(0, newAvailable) 
-      }, { emitEvent: false });
+      this.bookForm.patchValue({ availableCopies: Math.max(0, newAvailable) }, { emitEvent: false });
     }
   }
 
-  loadAuthors(): void {       
+  // ===== DATA LOADING =====
+
+  loadAuthors(): void {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     this.http.get<Author[]>(`${this.API_URL}/authors`, {
       headers: { Authorization: `Bearer ${token}` }
     }).subscribe({
-      next: res => {
-        this.authors = res || [];
-      },
+      next: res => { this.authors = res || []; },
       error: () => {
         this.authors = [];
         this.showErrorWithHighZIndex('Failed to load authors');
@@ -326,9 +377,7 @@ export class AdminInventory implements OnInit {
     this.http.get<Publisher[]>(`${this.API_URL}/publishers`, {
       headers: { Authorization: `Bearer ${token}` }
     }).subscribe({
-      next: res => {
-        this.publishers = res || [];
-      },
+      next: res => { this.publishers = res || []; },
       error: () => {
         this.publishers = [];
         this.showErrorWithHighZIndex('Failed to load publishers');
@@ -356,9 +405,7 @@ export class AdminInventory implements OnInit {
   }
 
   private flattenCategories(categories: Category[]): Category[] {
-    if (!categories || categories.length === 0) {
-      return [];
-    }
+    if (!categories || categories.length === 0) return [];
     let result: Category[] = [];
     for (const cat of categories) {
       result.push({ id: cat.id, name: cat.name });
@@ -369,7 +416,8 @@ export class AdminInventory implements OnInit {
     return result;
   }
 
-  // Category filter change - BUG FIX: Ensure subcategory filtering works
+  // ===== FILTERS & INVENTORY =====
+
   onCategoryFilterChange(event: any): void {
     this.selectedCategoryId = +event.target.value;
     this.showNewReleases = false;
@@ -379,7 +427,6 @@ export class AdminInventory implements OnInit {
     this.loadInventory();
   }
 
-  // Load New Releases
   loadNewReleases(): void {
     this.selectedCategoryId = 0;
     this.showNewReleases = true;
@@ -389,7 +436,6 @@ export class AdminInventory implements OnInit {
     this.loadInventory();
   }
 
-  // Load Best Sellers
   loadBestSellers(): void {
     this.selectedCategoryId = 0;
     this.showNewReleases = false;
@@ -399,7 +445,6 @@ export class AdminInventory implements OnInit {
     this.loadInventory();
   }
 
-  // Clear all filters
   clearAllFilters(): void {
     this.selectedCategoryId = 0;
     this.showNewReleases = false;
@@ -416,7 +461,6 @@ export class AdminInventory implements OnInit {
 
     this.loading = true;
 
-    // Check if we need to use search endpoint for New Releases or Best Sellers
     if (this.showNewReleases || this.showBestSellers) {
       const params: any = {
         sortBy: 'title',
@@ -424,24 +468,13 @@ export class AdminInventory implements OnInit {
         page: this.currentPage,
         pageSize: this.pageSize
       };
-
-      if (this.showNewReleases) {
-        params.newReleases = true;
-      }
-      if (this.showBestSellers) {
-        params.bestSellers = true;
-      }
-      // BUG FIX: Angular HttpClient automatically encodes params, so just pass the raw search term
-      if (this.searchTerm.trim()) {
-        params.search = this.searchTerm.trim();
-      }
+      if (this.showNewReleases) params.newReleases = true;
+      if (this.showBestSellers) params.bestSellers = true;
+      if (this.searchTerm.trim()) params.search = this.searchTerm.trim();
 
       this.http.get<{ data: any[]; totalCount: number; page: number; pageSize: number; totalPages: number }>(
         `${this.API_URL}/search`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params
-        }
+        { headers: { Authorization: `Bearer ${token}` }, params }
       ).subscribe({
         next: res => {
           this.books = res.data.map(b => this.mapSearchApiToBook(b));
@@ -457,21 +490,9 @@ export class AdminInventory implements OnInit {
         }
       });
     } else {
-      // Regular inventory loading with category filter
-      const params: any = { 
-        page: this.currentPage, 
-        pageSize: this.pageSize 
-      };
-      
-      // BUG FIX: Angular HttpClient automatically encodes params, so just pass the raw search term
-      if (this.searchTerm.trim()) {
-        params.search = this.searchTerm.trim();
-      }
-      
-      // BUG FIX: Ensure subcategory filter is properly applied
-      if (this.selectedCategoryId > 0) {
-        params.categoryId = this.selectedCategoryId;
-      }
+      const params: any = { page: this.currentPage, pageSize: this.pageSize };
+      if (this.searchTerm.trim()) params.search = this.searchTerm.trim();
+      if (this.selectedCategoryId > 0) params.categoryId = this.selectedCategoryId;
 
       this.http.get<{ data: any[]; totalCount: number }>(this.API_URL, {
         headers: { Authorization: `Bearer ${token}` },
@@ -540,13 +561,10 @@ export class AdminInventory implements OnInit {
     });
   }
 
-  clearMostRentedFilter(): void {
-    this.clearAllFilters();
-  }
+  // ===== RENTAL HISTORY =====
 
   viewRentalHistory(book: Book, event?: any): void {
     if (event) event.stopPropagation();
-
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -584,6 +602,8 @@ export class AdminInventory implements OnInit {
     this.totalRentals = 0;
   }
 
+  // ===== API MAPPING =====
+
   private mapSearchApiToBook(apiBook: any): any {
     return {
       id: apiBook.id,
@@ -615,8 +635,8 @@ export class AdminInventory implements OnInit {
         })
       : [];
 
-    const category = typeof apiBook.category === 'string' 
-      ? apiBook.category 
+    const category = typeof apiBook.category === 'string'
+      ? apiBook.category
       : (apiBook.category?.name || '');
 
     const publisher = typeof apiBook.publisher === 'string'
@@ -644,6 +664,8 @@ export class AdminInventory implements OnInit {
       isNewRelease: apiBook.isNewRelease || false
     };
   }
+
+  // ===== SEARCH & PAGINATION =====
 
   applyFilter(): void {
     this.currentPage = 1;
@@ -686,11 +708,14 @@ export class AdminInventory implements OnInit {
     this.loadInventory();
   }
 
+  // ===== MODAL OPEN/CLOSE =====
+
   openAddBookModal(): void {
     this.selectedBookId = null;
     this.initialAvailableCopies = 0;
     this.initialTotalCopies = 0;
     this.selectedAuthors = [];
+    this.categoryTouched = false;
     this.bookForm.reset({
       title: '',
       isbn: '',
@@ -713,12 +738,13 @@ export class AdminInventory implements OnInit {
     this.showBookModal = true;
   }
 
-  editBook(book: any, event?: any) {
+  editBook(book: any, event?: any): void {
     if (event) event.stopPropagation();
 
     this.selectedBookId = book.id;
     this.initialAvailableCopies = book.availableCopies;
     this.initialTotalCopies = book.totalCopies || 0;
+    this.categoryTouched = false;
 
     setTimeout(() => {
       let categoryId = 0;
@@ -747,7 +773,7 @@ export class AdminInventory implements OnInit {
           }
         });
       }
-      
+
       this.bookForm.patchValue({
         title: book.title || '',
         isbn: book.isbn || '',
@@ -770,16 +796,32 @@ export class AdminInventory implements OnInit {
     }, 150);
   }
 
+  closeModal(): void {
+    this.showBookModal = false;
+    this.selectedBookId = null;
+    this.selectedAuthors = [];
+    this.categoryTouched = false;
+    this.bookForm.reset();
+    this.categorySearch = '';
+    this.authorSearch = '';
+    this.publisherSearch = '';
+  }
+
+  // ===== SUBMIT BOOK =====
+
   submitBook(): void {
-    // Only check title and totalCopies
     const titleControl = this.bookForm.get('title');
     const totalCopiesControl = this.bookForm.get('totalCopies');
-    
+
     titleControl?.markAsTouched();
     totalCopiesControl?.markAsTouched();
+    this.categoryTouched = true;
 
-    if (titleControl?.invalid || totalCopiesControl?.invalid) {
-      this.showErrorWithHighZIndex('Please fill Book Title and Total Copies correctly');
+    const categoryId = this.bookForm.get('categoryId')?.value;
+    const isCategoryValid = categoryId && categoryId > 0;
+
+    if (titleControl?.invalid || totalCopiesControl?.invalid || !isCategoryValid) {
+      this.showErrorWithHighZIndex('Please fill Book Title, Total Copies, and Category correctly');
       return;
     }
 
@@ -867,25 +909,14 @@ export class AdminInventory implements OnInit {
     }
   }
 
-  closeModal(): void {
-    this.showBookModal = false;
-    this.selectedBookId = null;
-    this.selectedAuthors = [];
-    this.bookForm.reset();
-    this.categorySearch = '';
-    this.authorSearch = '';
-    this.publisherSearch = '';
-  }
+  // ===== SWAL HELPERS =====
 
-  // BUG FIX: SweetAlert with high z-index to appear above modals
   private showErrorWithHighZIndex(message: string): void {
     Swal.fire({
       title: 'Error',
       text: message,
       icon: 'error',
-      customClass: {
-        container: 'swal-high-zindex'
-      }
+      customClass: { container: 'swal-high-zindex' }
     });
   }
 
@@ -894,14 +925,12 @@ export class AdminInventory implements OnInit {
       title: 'Success',
       text: message,
       icon: 'success',
-      customClass: {
-        container: 'swal-high-zindex'
-      }
+      customClass: { container: 'swal-high-zindex' }
     });
   }
 
-  // ==================== IMPORT FUNCTIONALITY ====================
-  
+  // ===== IMPORT =====
+
   openImportModal(): void {
     this.showImportModal = true;
     this.selectedFile = null;
@@ -941,8 +970,7 @@ export class AdminInventory implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const now = new Date();
-        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 8);
+        const timestamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 8);
         a.download = `books-import-template-${timestamp}.xlsx`;
         a.click();
         window.URL.revokeObjectURL(url);
@@ -975,15 +1003,13 @@ export class AdminInventory implements OnInit {
       observe: 'events'
     }).subscribe({
       next: (event: any) => {
-        if (event.type === 1) { // HttpEventType.UploadProgress
-          if (event.total) {
-            this.uploadProgress = Math.round((100 * event.loaded) / event.total);
-          }
-        } else if (event.type === 4) { // HttpEventType.Response
+        if (event.type === 1 && event.total) {
+          this.uploadProgress = Math.round((100 * event.loaded) / event.total);
+        } else if (event.type === 4) {
           this.isUploading = false;
           this.uploadProgress = 100;
           const response = event.body;
-          
+
           Swal.fire({
             title: 'Import Complete',
             html: `
@@ -995,11 +1021,9 @@ export class AdminInventory implements OnInit {
               </div>
             `,
             icon: 'success',
-            customClass: {
-              container: 'swal-high-zindex'
-            }
+            customClass: { container: 'swal-high-zindex' }
           });
-          
+
           this.closeImportModal();
           this.loadInventory();
         }
@@ -1013,7 +1037,7 @@ export class AdminInventory implements OnInit {
     });
   }
 
-  // ==================== EXPORT FUNCTIONALITY ====================
+  // ===== EXPORT =====
 
   exportBooks(): void {
     const token = localStorage.getItem('token');
@@ -1027,8 +1051,7 @@ export class AdminInventory implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const now = new Date();
-        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15);
+        const timestamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15);
         a.download = `books-export-${timestamp}.xlsx`;
         a.click();
         window.URL.revokeObjectURL(url);
@@ -1037,6 +1060,8 @@ export class AdminInventory implements OnInit {
       error: () => this.showErrorWithHighZIndex('Failed to export books')
     });
   }
+
+  // ===== ARCHIVE =====
 
   toggleArchive(book: Book): void {
     const token = localStorage.getItem('token');
@@ -1060,6 +1085,8 @@ export class AdminInventory implements OnInit {
       }
     });
   }
+
+  // ===== FORM ERROR MESSAGES =====
 
   getErrorMessage(fieldName: string): string {
     const control = this.bookForm.get(fieldName);
