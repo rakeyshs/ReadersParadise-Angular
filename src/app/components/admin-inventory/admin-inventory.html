@@ -190,7 +190,6 @@
           {{ book.availableCopies }}
         </span>
       </td>
-      <!-- rentedCopies: from rentedCount (API) or derived totalCopies - availableCopies -->
       <td style="text-align: center;">{{ book.rentedCopies }}</td>
       <td style="text-align: center;">
         <div class="actions">
@@ -346,7 +345,7 @@
             </div>
           </div>
 
-          <!-- Available Copies -->
+          <!-- ✅ FIXED: Available Copies - fully manual, no readonly -->
           <div class="form-group">
             <label>
               <mat-icon class="label-icon">check_circle</mat-icon>
@@ -355,13 +354,11 @@
             <input 
               type="number" 
               class="form-control" 
-              formControlName="availableCopies" 
-              [attr.readonly]="selectedBookId ? true : null"
-              [style.background]="selectedBookId ? '#f8fafc' : ''"
+              formControlName="availableCopies"
               placeholder="Available copies"
             />
-            <small *ngIf="selectedBookId" style="color: #6b7280; font-size: 11px; margin-top: 2px; display: block;">
-              Auto-calculated when total copies changes
+            <small style="color: #6b7280; font-size: 11px; margin-top: 2px; display: block;">
+              Enter available copies manually
             </small>
           </div>
 
@@ -715,7 +712,7 @@
         </tbody>
       </table>
     </div>
-    <!-- modal code  -->
+
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" (click)="closeRentalHistoryModal()">
         <mat-icon style="vertical-align: middle; font-size: 18px;">close</mat-icon>

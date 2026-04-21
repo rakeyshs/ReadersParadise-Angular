@@ -29,7 +29,7 @@ interface Book {
   shelfLocation?: string;
   isBestSeller?: boolean;
   isNewRelease?: boolean;
-  rentedCount?: number;
+  rentedCount?: number;        // ✅ raw value from API
   averageRating?: number;
   reviewCount?: number;
 }
@@ -129,8 +129,8 @@ export class AdminInventory implements OnInit {
   uploadProgress: number = 0;
   isUploading: boolean = false;
 
-  private initialAvailableCopies: number = 0;
-  private initialTotalCopies: number = 0;
+  // ✅ FIX: store rentedCount directly from API — no subtraction math
+  private currentBookRentedCount: number = 0;
 
   private readonly API_URL = 'https://primabi.co/api/v1/Books';
   private readonly ADMIN_API_URL = 'https://primabi.co/api/v1/admin/books';
@@ -155,13 +155,6 @@ export class AdminInventory implements OnInit {
       publisherId: [0],
       isBestSeller: [false],
       isNewRelease: [false]
-    });
-
-    // Auto-sync availableCopies with totalCopies when adding new book
-    this.bookForm.get('totalCopies')?.valueChanges.subscribe(value => {
-      if (!this.selectedBookId) {
-        this.bookForm.patchValue({ availableCopies: value || 0 }, { emitEvent: false });
-      }
     });
   }
 
@@ -326,12 +319,20 @@ export class AdminInventory implements OnInit {
 
   // ===== COPIES LOGIC =====
 
+  // ✅ FIX: Use rentedCount from API directly — no subtraction
   onTotalCopiesChange(): void {
     if (this.selectedBookId) {
       const newTotal = this.bookForm.get('totalCopies')?.value || 0;
-      const difference = newTotal - this.initialTotalCopies;
-      const newAvailable = this.initialAvailableCopies + difference;
-      this.bookForm.patchValue({ availableCopies: Math.max(0, newAvailable) }, { emitEvent: false });
+      // Use rentedCount from API, NOT totalCopies - availableCopies
+      if (this.currentBookRentedCount > 0 && newTotal < this.currentBookRentedCount) {
+        this.showErrorWithHighZIndex(
+          `Total copies cannot be less than copies currently rented or reserved (${this.currentBookRentedCount})`
+        );
+        this.bookForm.patchValue(
+          { totalCopies: this.bookForm.get('totalCopies')?.value },
+          { emitEvent: false }
+        );
+      }
     }
   }
 
@@ -526,7 +527,8 @@ export class AdminInventory implements OnInit {
             category: item.category,
             publisher: '',
             archived: false,
-            description: ''
+            description: '',
+            rentedCount: item.totalRentals
           }));
           this.totalCount = res.total || 0;
           this.totalPages = 1;
@@ -585,10 +587,8 @@ export class AdminInventory implements OnInit {
   }
 
   // ===== API MAPPING =====
-  // Single unified mapper handles all API responses (list, search, detail)
 
   private mapApiToBook(apiBook: any): Book {
-    // Authors: API returns either string[] or {id, name}[] — handle both
     const authors = Array.isArray(apiBook.authors)
       ? apiBook.authors.map((a: any) => {
           if (typeof a === 'string') return { id: 0, name: a };
@@ -596,24 +596,19 @@ export class AdminInventory implements OnInit {
         })
       : [];
 
-    // Category: API returns either string or {id, name}
     const category = typeof apiBook.category === 'string'
       ? apiBook.category
       : (apiBook.category?.name || '');
 
-    // Publisher: API returns either string or {id, name}
     const publisher = typeof apiBook.publisher === 'string'
       ? apiBook.publisher
       : (apiBook.publisher?.name || '');
 
-    // totalCopies: some endpoints omit it — fall back to availableCopies
     const totalCopies = apiBook.totalCopies ?? apiBook.availableCopies ?? 0;
     const availableCopies = apiBook.availableCopies ?? 0;
 
-    // rentedCopies: use rentedCount if present, else derive from copies
-    const rentedCopies = apiBook.rentedCount !== undefined && apiBook.rentedCount !== null
-      ? apiBook.rentedCount
-      : Math.max(0, totalCopies - availableCopies);
+    // ✅ FIX: Use rentedCount from API directly. Never calculate from totalCopies - availableCopies.
+    const rentedCount = apiBook.rentedCount ?? 0;
 
     return {
       id: apiBook.id,
@@ -627,8 +622,8 @@ export class AdminInventory implements OnInit {
       totalCopies,
       availableCopies,
       minStock: apiBook.minStock || 0,
-      rentedCopies,
-      rentedCount: apiBook.rentedCount || 0,
+      rentedCopies: rentedCount,    // ✅ display value = API rentedCount
+      rentedCount,                  // ✅ raw API value stored for validation
       category,
       publisher,
       authors,
@@ -688,8 +683,7 @@ export class AdminInventory implements OnInit {
 
   openAddBookModal(): void {
     this.selectedBookId = null;
-    this.initialAvailableCopies = 0;
-    this.initialTotalCopies = 0;
+    this.currentBookRentedCount = 0;    // ✅ reset
     this.selectedAuthors = [];
     this.categoryTouched = false;
     this.bookForm.reset({
@@ -718,11 +712,11 @@ export class AdminInventory implements OnInit {
     if (event) event.stopPropagation();
 
     this.selectedBookId = book.id;
-    this.initialAvailableCopies = book.availableCopies ?? 0;
-    this.initialTotalCopies = book.totalCopies ?? 0;
-    this.categoryTouched = false;
 
-    // Reset search fields first
+    // ✅ FIX: Store rentedCount directly from API — no math
+    this.currentBookRentedCount = book.rentedCount ?? 0;
+
+    this.categoryTouched = false;
     this.categorySearch = '';
     this.publisherSearch = '';
     this.authorSearch = '';
@@ -766,7 +760,6 @@ export class AdminInventory implements OnInit {
           const authorName = typeof author === 'string' ? author : (author?.name || '');
           if (!authorName) return;
 
-          // If author already has a valid id, use it directly
           if (author.id && author.id > 0) {
             const found = this.authors.find(a => a.id === author.id);
             if (found && !this.selectedAuthors.find(s => s.id === found.id)) {
@@ -775,7 +768,6 @@ export class AdminInventory implements OnInit {
             }
           }
 
-          // Otherwise match by name
           const found = this.authors.find(
             a => a.name.toLowerCase() === authorName.toLowerCase()
           );
@@ -785,7 +777,7 @@ export class AdminInventory implements OnInit {
         });
       }
 
-      // ── Patch form with ALL fields from API ──
+      // ── Patch form ──
       this.bookForm.patchValue({
         title: book.title || '',
         isbn: book.isbn || '',
@@ -811,6 +803,7 @@ export class AdminInventory implements OnInit {
   closeModal(): void {
     this.showBookModal = false;
     this.selectedBookId = null;
+    this.currentBookRentedCount = 0;    // ✅ reset
     this.selectedAuthors = [];
     this.categoryTouched = false;
     this.bookForm.reset();
@@ -837,6 +830,39 @@ export class AdminInventory implements OnInit {
       return;
     }
 
+    const totalCopies = this.bookForm.value.totalCopies || 0;
+    const availableCopies = this.bookForm.value.availableCopies || 0;
+
+    if (this.selectedBookId) {
+      // ✅ FIX: Validate against API rentedCount directly — no subtraction
+      if (this.currentBookRentedCount > 0 && totalCopies < this.currentBookRentedCount) {
+        this.showErrorWithHighZIndex(
+          `Total copies cannot be less than copies currently rented or reserved (${this.currentBookRentedCount})`
+        );
+        return;
+      }
+
+      if (availableCopies > totalCopies) {
+        this.showErrorWithHighZIndex('Available copies cannot exceed total copies');
+        return;
+      }
+
+      if (availableCopies < 0) {
+        this.showErrorWithHighZIndex('Available copies cannot be negative');
+        return;
+      }
+    } else {
+      // Add mode
+      if (availableCopies > totalCopies) {
+        this.showErrorWithHighZIndex('Available copies cannot exceed total copies');
+        return;
+      }
+      if (availableCopies < 0) {
+        this.showErrorWithHighZIndex('Available copies cannot be negative');
+        return;
+      }
+    }
+
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -856,6 +882,7 @@ export class AdminInventory implements OnInit {
         publisherId: this.bookForm.value.publisherId,
         authorIds,
         totalCopies: this.bookForm.value.totalCopies,
+        availableCopies: this.bookForm.value.availableCopies,
         minStock: this.bookForm.value.minStock,
         isNewRelease: this.bookForm.value.isNewRelease,
         isBestSeller: this.bookForm.value.isBestSeller,
@@ -1115,8 +1142,6 @@ export class AdminInventory implements OnInit {
     return '';
   }
 
-
-  // demo testing
   private getFieldLabel(fieldName: string): string {
     const labels: { [key: string]: string } = {
       title: 'Book Title',
