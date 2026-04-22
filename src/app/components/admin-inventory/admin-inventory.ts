@@ -148,7 +148,7 @@ export class AdminInventory implements OnInit {
       binding: [''],
       imageUrl: [''],
       shelfLocation: [''],
-      totalCopies: [0, [Validators.required, Validators.min(1)]],
+      totalCopies: [0, [Validators.required, Validators.min(0)]],  // ✅ FIXED: min(0) instead of min(1)
       availableCopies: [0],
       minStock: [0],
       categoryId: [0],
