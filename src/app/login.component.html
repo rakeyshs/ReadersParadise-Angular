@@ -2,7 +2,7 @@
   <div class="hero-bg"></div>
 
   <div class="center-wrap">
-    <!-- ---------- Brand Section ---------- -->
+    <!-- Brand Section -->
     <div class="brand-logo-wrap">
       <img
         src="../assets/ic_launcher-web.png"
@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <!-- ---------- Card Section ---------- -->
+    <!-- Card Section -->
     <div class="card">
       <h3 class="card-title">Login</h3>
       <p class="card-sub">Access your admin dashboard</p>
@@ -26,7 +26,7 @@
         {{ error }}
       </div>
 
-      <!-- ---------- Form ---------- -->
+      <!-- Form -->
       <form [formGroup]="form" (ngSubmit)="submit()">
         <!-- Email -->
         <div class="field">
@@ -79,19 +79,22 @@
             <input type="checkbox" formControlName="remember" />
             Remember me
           </label>
-          <!-- <a class="forgot" routerLink="/forgot-password">Forgot password?</a> -->
         </div>
 
         <!-- Submit Button -->
-        <button
-          type="submit"
-          class="primary"
-          [disabled]="loading"
-        >
- 
-          {{ loading ? 'Login' : 'Login' }}
+        <button type="submit" class="primary" [disabled]="loading">
+          {{ loading ? 'Logging in...' : 'Login' }}
         </button>
       </form>
+
+      <!-- ✅ Privacy Policy Link -->
+      <div class="privacy-row">
+        <span>By logging in, you agree to our</span>
+        <a routerLink="/privacy-policy" class="privacy-link" target="_blank">
+          <mat-icon class="privacy-icon">lock</mat-icon>
+          Privacy Policy
+        </a>
+      </div>
     </div>
   </div>
 </div>

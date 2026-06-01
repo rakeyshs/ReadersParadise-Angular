@@ -12,7 +12,7 @@ import { ChangeDetectorRef } from '@angular/core';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule,MatButtonModule,MatIconModule],
+  imports: [CommonModule, ReactiveFormsModule,MatButtonModule,MatIconModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })

@@ -12,10 +12,14 @@ import { AdminPayments } from './components/admin-payments/admin-payments';
 import { AdminDashboardOverview } from './components/admin-dashboard-overview/admin-dashboard-overview';
 import { BookHistory } from './components/book-history/book-history';
 import { AdminCategories } from './components/admin-categories/admin-categories';
+import { PrivacyPolicyComponent } from './components/PrivacyPolicy/privacy-policy-component/privacy-policy-component';
 
 export const routes: Routes = [
   // ✅ Default redirect to login
   { path: '', redirectTo: 'login', pathMatch: 'full' },
+
+  { path: 'privacy-policy', component: PrivacyPolicyComponent },
+
 
   // ✅ Login Page
   { path: 'login', component: LoginComponent },
