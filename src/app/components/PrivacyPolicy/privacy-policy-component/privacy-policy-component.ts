@@ -9,4 +9,12 @@ import { RouterLink } from '@angular/router';
 })
 export class PrivacyPolicyComponent {
   currentYear: number = new Date().getFullYear();
+
+
+  scrollTo(id: string): void {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
 }
