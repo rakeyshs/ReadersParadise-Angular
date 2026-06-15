@@ -155,6 +155,17 @@
           >
             <mat-icon fontIcon="done_all"></mat-icon>
           </button>
+
+
+          <!-- Delete User -->
+<button
+  mat-icon-button
+  matTooltip="Delete User"
+  (click)="deleteUser(u.id)"
+  class="action-btn delete-btn"
+>
+  <mat-icon fontIcon="delete"></mat-icon>
+</button>
         </td>
       </tr>
 

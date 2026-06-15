@@ -229,4 +229,36 @@ verifyAll(userId: string) {
   });
 }
 
+// delte user
+
+deleteUser(userId: string) {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  Swal.fire({
+    title: 'Are you sure?',
+    text: 'This user will be permanently deleted!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e53935',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Yes, Delete!',
+    cancelButtonText: 'Cancel'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      this.http.post(
+        `https://primabi.co/api/v1/admin/AdminUsers/${userId}/delete`,
+        { confirm: true, force: true },   // ✅ pass the required body here
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).subscribe({
+        next: () => {
+          Swal.fire('✅ Deleted!', 'User has been deleted.', 'success');
+          this.loadUsers();
+        },
+        error: () => Swal.fire('❌ Error', 'Failed to delete user', 'error')
+      });
+    }
+  });
+}
+
 }
