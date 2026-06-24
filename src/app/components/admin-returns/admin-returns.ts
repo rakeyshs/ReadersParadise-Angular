@@ -1,11 +1,12 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import Swal from 'sweetalert2';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatTooltip } from "@angular/material/tooltip";
+import { Subscription, interval, fromEvent, merge } from 'rxjs';
+import { startWith } from 'rxjs/operators';
 
 interface ReturnEntry {
   orderItemId: number;
@@ -18,6 +19,8 @@ interface ReturnEntry {
   daysOverdue?: number;
   condition?: 'Good' | 'Damaged' | 'Lost';
   calculatedLateFee?: number;
+  returnRequested?: boolean;
+  memberNotes?: string;
 }
 
 interface ReturnProcessModel {
@@ -35,14 +38,15 @@ interface ReturnProcessModel {
   styleUrls: ['./admin-returns.scss'],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, MatButtonModule],
 })
-export class AdminReturns implements OnInit {
+export class AdminReturns implements OnInit, OnDestroy {
 
   returns: ReturnEntry[] = [];
   filteredReturns: ReturnEntry[] = [];
   searchTerm = '';
   loading = false;
 
-  activeTab: 'pending' | 'history' = 'pending';   // 🔥 DEFAULT = PENDING
+  activeTab: 'pending' | 'history' = 'pending';
+  pendingFilter: 'all' | 'requested' | 'overdue' = 'all';
 
   pageSize = 10;
   currentPage = 1;
@@ -54,6 +58,12 @@ export class AdminReturns implements OnInit {
   selectedReturn: ReturnEntry | null = null;
   showModal = false;
 
+  // ── Sidebar badge counts (updated by polling) ─────────────────────────────
+  pendingOrdersBadge = 0;
+  returnRequestedBadge = 0;
+
+  private pollSub?: Subscription;
+
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -62,25 +72,119 @@ export class AdminReturns implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
-    this.fetchReturns(); // 🔥 load pending list first
+    this.fetchReturns();
+    this.startBadgePolling();
   }
 
-  initForm() {
-    this.processForm = this.fb.group({
-      condition: ['Good', Validators.required],
-      lateFeePerDay: [0, [Validators.required, Validators.min(0)]],
-      damageFee: [0, [Validators.min(0)]],
-      lostBookFee: [0, [Validators.min(0)]],
-      notes: ['']
-    });
+  ngOnDestroy(): void {
+    this.pollSub?.unsubscribe();
   }
+
+  // ── Badge polling (60s + window focus) ───────────────────────────────────
+
+  private startBadgePolling() {
+    const trigger$ = merge(
+      interval(60_000),
+      fromEvent(window, 'focus')
+    ).pipe(startWith(0));
+
+    this.pollSub = trigger$.subscribe(() => this.fetchBadgeCounts());
+  }
+
+  private fetchBadgeCounts() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    // Pending Orders badge
+    this.http
+      .get<any>('https://primabi.co/api/v1/admin/orders?status=Pending&pageSize=1', { headers })
+      .subscribe({
+        next: res => {
+          this.pendingOrdersBadge = res.pagination?.totalItems ?? res.totalCount ?? 0;
+          this.updateSidebarBadges();
+        },
+        error: () => {}
+      });
+
+    // Return Requested badge
+    this.http
+      .get<any>('https://primabi.co/api/v1/admin/returns/pending?pageSize=1', { headers })
+      .subscribe({
+        next: res => {
+          this.returnRequestedBadge =
+            res.returnRequestedCount ??
+            (res.data as any[])?.filter((r: any) => r.returnRequested).length ??
+            0;
+          this.updateSidebarBadges();
+        },
+        error: () => {}
+      });
+  }
+
+  /**
+   * Writes badge counts to sidebar DOM elements directly.
+   * This avoids needing a shared service or touching the sidebar component.
+   *
+   * Your sidebar nav items need these data attributes:
+   *   <a data-badge="orders">Book Orders</a>
+   *   <a data-badge="returns">Returns</a>
+   *
+   * The badge <span> is created automatically if missing.
+   */
+  private updateSidebarBadges() {
+    this.setBadge('[data-badge="orders"]', this.pendingOrdersBadge);
+    this.setBadge('[data-badge="returns"]', this.returnRequestedBadge);
+  }
+
+  private setBadge(selector: string, count: number) {
+    const navItem = document.querySelector(selector);
+    if (!navItem) return;
+
+    let badge = navItem.querySelector<HTMLElement>('.nav-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      navItem.appendChild(badge);
+    }
+
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.style.display = 'inline-flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // ── Computed counts for sub-filter pills ──────────────────────────────────
+
+  /** Non-null alias used in the modal template so ?. operators are not needed. */
+  get activeReturn(): ReturnEntry {
+    return this.selectedReturn!;
+  }
+
+  get returnRequestedCount(): number {
+    return this.returns.filter(r => r.returnRequested).length;
+  }
+
+  get overdueCount(): number {
+    return this.returns.filter(r => r.daysOverdue && r.daysOverdue > 0).length;
+  }
+
+  // ── Tab & filter logic ────────────────────────────────────────────────────
 
   setTab(tab: 'pending' | 'history') {
     if (this.activeTab !== tab) {
       this.activeTab = tab;
+      this.pendingFilter = 'all';
       this.currentPage = 1;
       this.fetchReturns();
     }
+  }
+
+  setPendingFilter(filter: 'all' | 'requested' | 'overdue') {
+    this.pendingFilter = filter;
+    this.applyFilter();
   }
 
   fetchReturns() {
@@ -88,7 +192,6 @@ export class AdminReturns implements OnInit {
     if (!token) return;
 
     this.loading = true;
-
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
 
     const url = this.activeTab === 'pending'
@@ -98,10 +201,9 @@ export class AdminReturns implements OnInit {
     this.http.get<any>(url, { headers }).subscribe({
       next: res => {
         this.returns = res.data || [];
-        this.filteredReturns = [...this.returns];
         this.totalPages = res.pagination?.totalPages || 1;
         this.pages = Array.from({ length: this.totalPages }, (_, i) => i + 1);
-
+        this.applyFilter();
         this.loading = false;
         this.cd.detectChanges();
       },
@@ -119,10 +221,21 @@ export class AdminReturns implements OnInit {
 
   applyFilter() {
     const term = this.searchTerm.toLowerCase();
-    this.filteredReturns = this.returns.filter(
+
+    let result = this.returns.filter(
       r => r.bookTitle.toLowerCase().includes(term) ||
            r.memberName.toLowerCase().includes(term)
     );
+
+    if (this.activeTab === 'pending') {
+      if (this.pendingFilter === 'requested') {
+        result = result.filter(r => r.returnRequested);
+      } else if (this.pendingFilter === 'overdue') {
+        result = result.filter(r => r.daysOverdue && r.daysOverdue > 0);
+      }
+    }
+
+    this.filteredReturns = result;
   }
 
   clearSearch() {
@@ -137,15 +250,11 @@ export class AdminReturns implements OnInit {
   }
 
   next() {
-    if (this.currentPage < this.totalPages) {
-      this.setPage(this.currentPage + 1);
-    }
+    if (this.currentPage < this.totalPages) this.setPage(this.currentPage + 1);
   }
 
   prev() {
-    if (this.currentPage > 1) {
-      this.setPage(this.currentPage - 1);
-    }
+    if (this.currentPage > 1) this.setPage(this.currentPage - 1);
   }
 
   openReturnModal(entry: ReturnEntry) {
@@ -172,12 +281,10 @@ export class AdminReturns implements OnInit {
     }
 
     const value = this.processForm.value;
-
     const body = {
       ...value,
       condition: value.condition === 'Damaged' ? 2 :
-                 value.condition === 'Lost' ? 3 :
-                 1
+                 value.condition === 'Lost' ? 3 : 1
     };
 
     const token = localStorage.getItem('token');
@@ -194,9 +301,20 @@ export class AdminReturns implements OnInit {
       next: () => {
         Swal.fire('Success', 'Return processed successfully', 'success');
         this.fetchReturns();
+        this.fetchBadgeCounts(); // refresh sidebar badges immediately after processing
         this.closeModal();
       },
       error: () => Swal.fire('Error', 'Failed to process return', 'error')
+    });
+  }
+
+  initForm() {
+    this.processForm = this.fb.group({
+      condition: ['Good', Validators.required],
+      lateFeePerDay: [0, [Validators.required, Validators.min(0)]],
+      damageFee: [0, [Validators.min(0)]],
+      lostBookFee: [0, [Validators.min(0)]],
+      notes: ['']
     });
   }
 

@@ -11,7 +11,6 @@
   </div>
 
   <div class="tabs">
-
     <label>
       Show
       <select class="select-size" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
@@ -20,18 +19,16 @@
       entries
     </label>
 
-
-
     <!-- PENDING TAB -->
-    <button
+    <!-- <button
       class="tab-btn"
       [class.active]="activeTab === 'pending'"
       (click)="setTab('pending')"
     >
       Pending
-    </button>
+    </button> -->
 
-        <!-- HISTORY TAB -->
+    <!-- HISTORY TAB -->
     <button
       class="tab-btn"
       [class.active]="activeTab === 'history'"
@@ -39,8 +36,37 @@
     >
       History
     </button>
-
   </div>
+</div>
+
+<!-- Sub-filter tabs (only visible in Pending tab) -->
+<div class="sub-tabs" *ngIf="activeTab === 'pending'">
+  <button
+    class="sub-tab-btn"
+    [class.active]="pendingFilter === 'all'"
+    (click)="setPendingFilter('all')"
+  >
+    All Pending
+    <span class="sub-tab-count">{{ returns.length }}</span>
+  </button>
+
+  <button
+    class="sub-tab-btn urgent"
+    [class.active]="pendingFilter === 'requested'"
+    (click)="setPendingFilter('requested')"
+  >
+    Return Requested
+    <span class="sub-tab-count requested">{{ returnRequestedCount }}</span>
+  </button>
+
+  <button
+    class="sub-tab-btn"
+    [class.active]="pendingFilter === 'overdue'"
+    (click)="setPendingFilter('overdue')"
+  >
+    Overdue
+    <span class="sub-tab-count overdue">{{ overdueCount }}</span>
+  </button>
 </div>
 
 <table class="users-table" *ngIf="filteredReturns.length > 0; else noResults">
@@ -57,12 +83,29 @@
   </thead>
 
   <tbody>
-    <tr *ngFor="let r of filteredReturns; let i = index">
+    <tr *ngFor="let r of filteredReturns; let i = index"
+        [class.row-requested]="r.returnRequested">
       <td>{{ i + 1 }}</td>
-      <td>{{ r.bookTitle }}</td>
-      <td>{{ r.memberName }}</td>
-      <td><span class="status" [attr.data-status]="r.condition">{{ r.condition || 'Good' }}</span></td>
-      <td>{{ r.daysOverdue || 0 }}</td>
+
+      <td>{{ r.bookTitle }}
+          <span class="badge-requested" *ngIf="r.returnRequested">⏎ Requested</span>
+      </td>
+
+      <td>
+        {{ r.memberName }}
+      
+      </td>
+
+      <td>
+        <span class="status" [attr.data-status]="r.condition">{{ r.condition || 'Good' }}</span>
+      </td>
+
+      <td>
+        <span [class.overdue-days]="r.daysOverdue && r.daysOverdue > 0">
+          {{ r.daysOverdue || 0 }}
+        </span>
+      </td>
+
       <td>{{ r.calculatedLateFee || 0 }}</td>
 
       <td *ngIf="activeTab==='pending'">
@@ -89,7 +132,7 @@
 </div>
 
 <!-- Modal -->
-<div class="modal fade show" *ngIf="showModal" style="display:block; background: rgba(0,0,0,0.5);">
+<div class="modal fade show" *ngIf="showModal && activeReturn as r" style="display:block; background: rgba(0,0,0,0.5);">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
 
@@ -99,15 +142,24 @@
       </div>
 
       <div class="modal-body">
+
+        <!-- Member Notes (read-only) — shown only when present -->
+        <div class="member-notes-box" *ngIf="r.memberNotes">
+          <div class="member-notes-label">
+            <span class="notes-icon">📋</span> Member's Notes
+          </div>
+          <div class="member-notes-text">{{ r.memberNotes }}</div>
+        </div>
+
         <form [formGroup]="processForm" class="modal-form grid-form">
           <div class="form-group">
             <label class="form-label">Book Title</label>
-            <input class="form-control" [value]="selectedReturn?.bookTitle" disabled />
+            <input class="form-control" [value]="r.bookTitle" disabled />
           </div>
 
           <div class="form-group">
             <label class="form-label">Member Name</label>
-            <input class="form-control" [value]="selectedReturn?.memberName" disabled />
+            <input class="form-control" [value]="r.memberName" disabled />
           </div>
 
           <div class="form-group">
@@ -135,7 +187,7 @@
           </div>
 
           <div class="form-group full-width">
-            <label class="form-label">Notes</label>
+            <label class="form-label">Admin Notes</label>
             <input type="text" class="form-control" formControlName="notes" />
           </div>
         </form>
