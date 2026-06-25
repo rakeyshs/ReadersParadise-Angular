@@ -144,6 +144,126 @@
   transform: translateY(-1px);
 }
 
+/* ============================================================
+   ✅ NEW: Quick Sort Action Bar
+   ============================================================ */
+.quick-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.quick-sort-label {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.quick-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #eff6ff;
+  }
+
+  &.active {
+    background: linear-gradient(90deg, #2563eb, #06b6d4);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  }
+
+  &.clear {
+    border-color: #fca5a5;
+    color: #ef4444;
+
+    &:hover {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+  }
+}
+
+.sort-active-indicator {
+  margin-left: auto;
+  font-size: 12px;
+  color: #6b7280;
+  background: #e0f2fe;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+
+  strong {
+    color: #0369a1;
+  }
+}
+
+/* ============================================================
+   ✅ NEW: Sortable column headers
+   ============================================================ */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #eff6ff !important;
+    color: #2563eb;
+
+    .sort-icon {
+      color: #2563eb;
+      opacity: 1;
+    }
+  }
+}
+
+.sort-icon {
+  font-size: 16px !important;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-left: 4px;
+  color: #9ca3af;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+
+  &.sort-active {
+    color: #2563eb;
+    opacity: 1;
+  }
+}
+
 /* ---------------- Table ---------------- */
 .users-table {
   width: 100%;
@@ -188,7 +308,7 @@
   color: #ef4444;
 }
 
-/* ✅ FIXED: Book Title Cell - proper alignment and truncation */
+/* ✅ Book Title Cell */
 .book-title-cell {
   display: flex;
   flex-direction: column;
@@ -197,7 +317,6 @@
   min-width: 200px;
 }
 
-/* ✅ FIXED: Title bold, single line with ellipsis */
 .book-title-text {
   font-size: 14px;
   font-weight: 700;
@@ -209,7 +328,6 @@
   max-width: 100%;
 }
 
-/* ✅ FIXED: Description - max 2 lines, then ellipsis, properly aligned */
 .book-description {
   color: #6b7280;
   font-size: 11px;
@@ -279,7 +397,6 @@
   font-weight: 600;
 }
 
-/* ===== Modal Close Button (X) in Header ===== */
 .modal-close-btn {
   background: rgba(255, 255, 255, 0.15);
   border: 2px solid rgba(255, 255, 255, 0.4);
@@ -339,14 +456,12 @@
   gap: 6px;
 }
 
-/* ===== Required Star ===== */
 .required-star {
   color: #ef4444;
   font-weight: 700;
   font-size: 15px;
 }
 
-/* Material Icon in Label */
 .label-icon {
   font-size: 18px !important;
   width: 18px;
@@ -370,7 +485,6 @@
   outline: none;
 }
 
-/* Input error state */
 .form-control.input-error {
   border-color: #ef4444;
   box-shadow: 0 0 3px rgba(239, 68, 68, 0.3);
@@ -410,7 +524,6 @@
   background: rgba(37, 99, 235, 0.08);
 }
 
-/* ===== Hierarchical Category Dropdown Styles ===== */
 .category-dropdown-list {
   padding: 4px 0;
 }
@@ -485,7 +598,6 @@
   color: #dc2626;
 }
 
-/* Select with Icon Styling */
 .select-with-icon {
   appearance: none;
   -webkit-appearance: none;

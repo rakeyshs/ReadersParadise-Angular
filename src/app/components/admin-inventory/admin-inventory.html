@@ -103,6 +103,49 @@
   </button>
 </div>
 
+<!-- ✅ NEW: Quick Sort Action Bar -->
+<div class="quick-sort-bar">
+  <span class="quick-sort-label">
+    <mat-icon style="font-size: 16px; vertical-align: middle; color: #6b7280;">sort</mat-icon>
+    Quick Sort:
+  </span>
+
+  <button
+    class="quick-sort-btn"
+    [class.active]="sortColumn === 'availableCopies' && sortDirection === 'asc'"
+    (click)="sortAvailableLowToHigh()"
+    matTooltip="Show books with lowest available copies first (0 on top)"
+  >
+    <mat-icon style="font-size: 15px; vertical-align: middle;">arrow_upward</mat-icon>
+    Available: 0 First
+  </button>
+
+  <button
+    class="quick-sort-btn"
+    [class.active]="sortColumn === 'rentedCopies' && sortDirection === 'desc'"
+    (click)="sortRentedHighToLow()"
+    matTooltip="Show most rented books first"
+  >
+    <mat-icon style="font-size: 15px; vertical-align: middle;">arrow_downward</mat-icon>
+    Rented: Max First
+  </button>
+
+  <button
+    *ngIf="sortColumn !== null"
+    class="quick-sort-btn clear"
+    (click)="clearSort()"
+    matTooltip="Reset to default order"
+  >
+    <mat-icon style="font-size: 15px; vertical-align: middle;">close</mat-icon>
+    Clear Sort
+  </button>
+
+  <!-- Active sort indicator -->
+  <span *ngIf="sortColumn" class="sort-active-indicator">
+    Sorted by <strong>{{ sortColumn }}</strong> ({{ sortDirection === 'asc' ? '↑ asc' : '↓ desc' }})
+  </span>
+</div>
+
 <!-- Active Filter Display -->
 <div *ngIf="selectedCategoryId > 0 || showNewReleases || showBestSellers || showMostRented" 
      style="margin-bottom: 12px; padding: 8px 12px; background: #f0f9ff; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
@@ -127,22 +170,53 @@
   <thead>
     <tr>
       <th style="width: 60px;">Cover</th>
-      <th>Title</th>
+
+      <!-- ✅ Sortable: Title -->
+      <th class="sortable-th" (click)="sortByColumn('title')">
+        Title
+        <mat-icon class="sort-icon" [class.sort-active]="sortColumn === 'title'">
+          {{ getSortIcon('title') }}
+        </mat-icon>
+      </th>
+
       <th>ISBN</th>
       <th>Category</th>
       <th>Authors</th>
       <th>Publisher</th>
-      <th style="text-align: center;">Total</th>
-      <th style="text-align: center;">Available</th>
-      <th style="text-align: center;">Rented</th>
+
+      <!-- ✅ Sortable: Total -->
+      <th class="sortable-th" style="text-align: center;" (click)="sortByColumn('totalCopies')">
+        Total
+        <mat-icon class="sort-icon" [class.sort-active]="sortColumn === 'totalCopies'">
+          {{ getSortIcon('totalCopies') }}
+        </mat-icon>
+      </th>
+
+      <!-- ✅ Sortable: Available -->
+      <th class="sortable-th" style="text-align: center;" (click)="sortByColumn('availableCopies')">
+        Available
+        <mat-icon class="sort-icon" [class.sort-active]="sortColumn === 'availableCopies'">
+          {{ getSortIcon('availableCopies') }}
+        </mat-icon>
+      </th>
+
+      <!-- ✅ Sortable: Rented -->
+      <th class="sortable-th" style="text-align: center;" (click)="sortByColumn('rentedCopies')">
+        Rented
+        <mat-icon class="sort-icon" [class.sort-active]="sortColumn === 'rentedCopies'">
+          {{ getSortIcon('rentedCopies') }}
+        </mat-icon>
+      </th>
+
       <th style="text-align: center;">Actions</th>
     </tr>
   </thead>
   <tbody>
-    <tr *ngIf="books.length === 0">
+    <tr *ngIf="sortedBooks.length === 0">
       <td colspan="10" class="no-results">No books found</td>
     </tr>
-    <tr *ngFor="let book of books" [style.background-color]="book.archived ? '#f3f4f6' : 'inherit'">
+    <!-- ✅ Use sortedBooks instead of books -->
+    <tr *ngFor="let book of sortedBooks" [style.background-color]="book.archived ? '#f3f4f6' : 'inherit'">
       <td>
         <img 
           [src]="book.imageUrl || 'https://via.placeholder.com/50x70?text=No+Image'" 
@@ -152,7 +226,6 @@
         />
       </td>
       <td>
-        <!-- ✅ FIXED: description properly truncated to 2 lines -->
         <div class="book-title-cell">
           <strong class="book-title-text">{{ book.title }}</strong>
           <span *ngIf="book.description" class="book-description" [title]="book.description">
@@ -242,7 +315,7 @@
 </table>
 
 <!-- Pagination -->
-<div *ngIf="!loading && books.length > 0" class="pager">
+<div *ngIf="!loading && sortedBooks.length > 0" class="pager">
   <button (click)="prev()" [disabled]="currentPage === 1">
     <mat-icon style="font-size: 18px;">chevron_left</mat-icon>
   </button>

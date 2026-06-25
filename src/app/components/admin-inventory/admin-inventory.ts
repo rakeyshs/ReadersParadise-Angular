@@ -68,6 +68,10 @@ interface RentalHistory {
   status: string;
 }
 
+// ✅ NEW: sortable column keys + sort direction type
+type SortableColumn = 'totalCopies' | 'availableCopies' | 'rentedCopies' | 'title' | null;
+type SortDirection = 'asc' | 'desc';
+
 @Component({
   selector: 'app-admin-inventory',
   standalone: true,
@@ -129,6 +133,10 @@ export class AdminInventory implements OnInit {
   uploadProgress: number = 0;
   isUploading: boolean = false;
 
+  // ✅ NEW: sorting state
+  sortColumn: SortableColumn = null;
+  sortDirection: SortDirection = 'asc';
+
   // ✅ FIX: store rentedCount directly from API — no subtraction math
   private currentBookRentedCount: number = 0;
 
@@ -163,6 +171,75 @@ export class AdminInventory implements OnInit {
     this.loadPublishers();
     this.loadAuthors();
     this.loadInventory();
+  }
+
+  // ===== SORTING (NEW) =====
+
+  /**
+   * Returns the `books` array sorted according to the currently selected
+   * column/direction. Used by the template instead of the raw `books` array.
+   * Sorting is done client-side on the current page of results.
+   */
+  get sortedBooks(): Book[] {
+    if (!this.sortColumn) return this.books;
+
+    const column = this.sortColumn;
+    const dir = this.sortDirection === 'asc' ? 1 : -1;
+
+    return [...this.books].sort((a: any, b: any) => {
+      let valA = a[column];
+      let valB = b[column];
+
+      if (typeof valA === 'string' || typeof valB === 'string') {
+        valA = (valA ?? '').toString().toLowerCase();
+        valB = (valB ?? '').toString().toLowerCase();
+        if (valA < valB) return -1 * dir;
+        if (valA > valB) return 1 * dir;
+        return 0;
+      }
+
+      valA = valA ?? 0;
+      valB = valB ?? 0;
+      return (valA - valB) * dir;
+    });
+  }
+
+  /**
+   * Called when a sortable column header is clicked.
+   * Clicking the same column again toggles asc <-> desc.
+   * Clicking a new column resets to ascending.
+   */
+  sortByColumn(column: SortableColumn): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+  }
+
+  /** Returns the mat-icon name to show next to a sortable header. */
+  getSortIcon(column: SortableColumn): string {
+    if (this.sortColumn !== column) return 'unfold_more';
+    return this.sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  /** Quick button: show books with 0 (or lowest) Available Copies first. */
+  sortAvailableLowToHigh(): void {
+    this.sortColumn = 'availableCopies';
+    this.sortDirection = 'asc';
+  }
+
+  /** Quick button: show books with the highest Rented count first, down to 0. */
+  sortRentedHighToLow(): void {
+    this.sortColumn = 'rentedCopies';
+    this.sortDirection = 'desc';
+  }
+
+  /** Resets any active sort back to default (API order). */
+  clearSort(): void {
+    this.sortColumn = null;
+    this.sortDirection = 'asc';
   }
 
   // ===== HIERARCHICAL CATEGORY DROPDOWN =====
