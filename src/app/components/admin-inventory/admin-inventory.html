@@ -212,11 +212,11 @@
     </tr>
   </thead>
   <tbody>
-    <tr *ngIf="sortedBooks.length === 0">
+<tr *ngIf="books.length === 0">
       <td colspan="10" class="no-results">No books found</td>
     </tr>
     <!-- ✅ Use sortedBooks instead of books -->
-    <tr *ngFor="let book of sortedBooks" [style.background-color]="book.archived ? '#f3f4f6' : 'inherit'">
+   <tr *ngFor="let book of books" [style.background-color]="book.archived ? '#f3f4f6' : 'inherit'">
       <td>
         <img 
           [src]="book.imageUrl || 'https://via.placeholder.com/50x70?text=No+Image'" 
@@ -315,7 +315,7 @@
 </table>
 
 <!-- Pagination -->
-<div *ngIf="!loading && sortedBooks.length > 0" class="pager">
+<div *ngIf="!loading && books.length > 0" class="pager">
   <button (click)="prev()" [disabled]="currentPage === 1">
     <mat-icon style="font-size: 18px;">chevron_left</mat-icon>
   </button>
