@@ -14,6 +14,9 @@ interface ApiSubscription {
   status?: string;
   startDate?: string;
   endDate?: string;
+  totalDurationDays?: number;
+  remainingDays?: number;
+  isExpired?: boolean;
 }
 
 interface ApiUser {
@@ -43,6 +46,9 @@ interface User {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   createdAt: string;
+  totalDurationDays: number;
+  remainingDays: number;
+  isExpired: boolean;
 }
 
 @Component({
@@ -66,19 +72,6 @@ export class AdminOrders implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
-  }
-
-  parseDate(dateStr: string): Date {
-    const [day, month, year] = dateStr.split('/').map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  getRemainingDays(startDate: string, endDate: string): number {
-    if (!startDate || !endDate) return 0;
-    const today = new Date();
-    const end = this.parseDate(endDate);
-    const diffDays = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
   }
 
   // ── Load users ────────────────────────────────────────────────────────────
@@ -133,6 +126,9 @@ export class AdminOrders implements OnInit {
       isEmailVerified: u.isEmailVerified ?? false,
       isPhoneVerified: u.isPhoneVerified ?? false,
       createdAt: new Date(u.createdAt).toLocaleDateString(),
+      totalDurationDays: sub?.totalDurationDays ?? 0,
+      remainingDays: sub?.remainingDays ?? 0,
+      isExpired: sub?.isExpired ?? false,
     };
   }
 

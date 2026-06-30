@@ -34,9 +34,6 @@
         </select>
         entries
       </label>
-      <!-- <button class="btn btn-secondary" (click)="loadUsers()" [disabled]="loading">
-        {{ loading ? 'Loading...' : 'Refresh' }}
-      </button> -->
     </div>
   </div>
 
@@ -52,9 +49,11 @@
         <th>Email Verified</th>
         <th>Phone Verified</th>
         <th>Subscription</th>
-        <th> Type</th>
-            <th> Status</th>
-        <th>Days</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Total Days</th>
+        <th>Remaining Days</th>
+        <th>Expired</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -78,53 +77,64 @@
             {{ u.isPhoneVerified ? 'Yes' : 'No' }}
           </span>
         </td>
-        <!-- ✅ Subscription Column Improved -->
+
+        <!-- Subscription Dates -->
         <td>
           <div class="subscription-cell">
-            <!-- <span class="status" [attr.data-status]="u.subscriptionStatus">
-              {{ u.subscriptionStatus || 'N/A' }}
-            </span> -->
             <div class="subscription-dates" *ngIf="u.subscriptionStatus && u.subscriptionStatus !== 'N/A'">
               {{ u.startDate }} → {{ u.endDate }}
             </div>
           </div>
         </td>
 
+        <!-- Subscription Type Column -->
+        <td>
+          <span class="badge type" [ngClass]="{
+                'quarterly': u.subscriptionType === 'Quarterly',
+                'monthly': u.subscriptionType === 'Monthly',
+                'yearly': u.subscriptionType === 'Yearly',
+                'other': u.subscriptionType !== 'Quarterly' && u.subscriptionType !== 'Monthly' && u.subscriptionType !== 'Yearly'
+              }">
+            {{ u.subscriptionType || 'N/A' }}
+          </span>
+        </td>
 
-   <!-- Subscription Type Column -->
-<td>
-  <span class="badge type" [ngClass]="{
-        'quarterly': u.subscriptionType === 'Quarterly',
-        'monthly': u.subscriptionType === 'Monthly',
-        'yearly': u.subscriptionType === 'Yearly',
-        'other': u.subscriptionType !== 'Quarterly' && u.subscriptionType !== 'Monthly' && u.subscriptionType !== 'Yearly'
-      }">
-    {{ u.subscriptionType || 'N/A' }}
-  </span>
-</td>
+        <!-- Subscription Status Column -->
+        <td>
+          <span class="badge status" [ngClass]="{
+                'active': u.subscriptionStatus === 'Active',
+                'inactive': u.subscriptionStatus === 'Inactive',
+                'expired': u.subscriptionStatus === 'Expired'
+              }">
+            {{ u.subscriptionStatus || 'N/A' }}
+          </span>
+        </td>
 
-<!-- Subscription Status Column -->
-<td>
-  <span class="badge status" [ngClass]="{
-        'active': u.subscriptionStatus === 'Active',
-        'inactive': u.subscriptionStatus === 'Inactive',
-        'expired': u.subscriptionStatus === 'Expired'
-      }">
-    {{ u.subscriptionStatus || 'N/A' }}
-  </span>
-</td>
+        <!-- Total Duration Days -->
+        <td>{{ u.totalDurationDays }} days</td>
 
-<td>
-  {{ getRemainingDays(u.startDate, u.endDate) }} days
-</td>
+        <!-- Remaining Days -->
+        <td>
+          <span [class.yes]="u.remainingDays > 0" [class.no]="u.remainingDays === 0">
+            {{ u.remainingDays }} days
+          </span>
+        </td>
+
+        <!-- Is Expired -->
+        <td>
+          <span class="badge status" [ngClass]="{
+                'expired': u.isExpired,
+                'active': !u.isExpired
+              }">
+            {{ u.isExpired ? 'Expired' : 'Active' }}
+          </span>
+        </td>
 
         <!-- ✅ ACTION BUTTONS -->
         <td class="actions">
-          <!-- Verify Email -->
           <button
             mat-icon-button
             matTooltip="Verify Email"
-          
             color="primary"
             (click)="verifyEmail(u.id)"
             class="action-btn email-btn"
@@ -132,23 +142,19 @@
             <mat-icon fontIcon="mark_email_read"></mat-icon>
           </button>
 
-          <!-- Verify Phone -->
           <button
             mat-icon-button
             class="action-btn phone-btn"
             (click)="verifyPhone(u.id)"
             matTooltip="Verify Phone Number"
-      
             aria-label="Verify Phone"
           >
             <mat-icon fontIcon="phone_iphone"></mat-icon>
           </button>
 
-          <!-- Verify All -->
           <button
             mat-icon-button
             matTooltip="Verify All"
-       
             color="warn"
             (click)="verifyAll(u.id)"
             class="action-btn all-btn"
@@ -156,21 +162,19 @@
             <mat-icon fontIcon="done_all"></mat-icon>
           </button>
 
-
-          <!-- Delete User -->
-<button
-  mat-icon-button
-  matTooltip="Delete User"
-  (click)="deleteUser(u.id)"
-  class="action-btn delete-btn"
->
-  <mat-icon fontIcon="delete"></mat-icon>
-</button>
+          <button
+            mat-icon-button
+            matTooltip="Delete User"
+            (click)="deleteUser(u.id)"
+            class="action-btn delete-btn"
+          >
+            <mat-icon fontIcon="delete"></mat-icon>
+          </button>
         </td>
       </tr>
 
       <tr *ngIf="pagedUsers.length === 0">
-        <td colspan="10" class="no-results">No users found</td>
+        <td colspan="13" class="no-results">No users found</td>
       </tr>
     </tbody>
   </table>
