@@ -63,8 +63,8 @@ export class AdminOrders implements OnInit {
 
   users: User[] = [];
   searchTerm = '';
-  pageSizes = [5, 10, 20];
-  pageSize = 10;
+  pageSizes = [10, 20, 50];
+  pageSize = 20;
   currentPage = 1;
   loading = false;
 

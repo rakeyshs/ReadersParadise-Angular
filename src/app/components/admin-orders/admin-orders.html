@@ -45,7 +45,6 @@
         <th>Name</th>
         <th>Email</th>
         <th>Phone</th>
-        <th>Roles</th>
         <th>Email Verified</th>
         <th>Phone Verified</th>
         <th>Subscription</th>
@@ -65,9 +64,6 @@
         <td>{{ u.email }}</td>
         <td>{{ u.phone || '-' }}</td>
         <td>
-          <span class="role-badge" *ngFor="let r of u.roles">{{ r }}</span>
-        </td>
-        <td>
           <span [class.yes]="u.isEmailVerified" [class.no]="!u.isEmailVerified">
             {{ u.isEmailVerified ? 'Yes' : 'No' }}
           </span>
@@ -82,7 +78,7 @@
         <td>
           <div class="subscription-cell">
             <div class="subscription-dates" *ngIf="u.subscriptionStatus && u.subscriptionStatus !== 'N/A'">
-              {{ u.startDate }} → {{ u.endDate }}
+              {{ u.startDate }} &rarr; {{ u.endDate }}
             </div>
           </div>
         </td>
@@ -130,7 +126,7 @@
           </span>
         </td>
 
-        <!-- ✅ ACTION BUTTONS -->
+        <!-- ACTION BUTTONS -->
         <td class="actions">
           <button
             mat-icon-button
@@ -174,7 +170,7 @@
       </tr>
 
       <tr *ngIf="pagedUsers.length === 0">
-        <td colspan="13" class="no-results">No users found</td>
+        <td colspan="12" class="no-results">No users found</td>
       </tr>
     </tbody>
   </table>
